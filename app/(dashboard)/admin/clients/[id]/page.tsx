@@ -19,13 +19,13 @@ type UserSummary = {
 };
 
 type Props = {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 };
 
 export const revalidate = 0; // always fetch fresh
 
 export default async function ClientPage({ params }: Props) {
-  const { id } = params;
+  const { id } = await params;
 
   // Example UUID (not used)
   console.log("Generated new UUID example:", uuidv4());

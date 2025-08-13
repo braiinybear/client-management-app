@@ -20,13 +20,13 @@ type Employee = {
 };
 
 type Props = {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 };
 
 export const revalidate = 0;
 
 export default async function EmployeePage({ params }: Props) {
-  const { id } = params;
+    const { id } = await params;
 
   const employee = await prisma.user.findUnique({
     where: { id },

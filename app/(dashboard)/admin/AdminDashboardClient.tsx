@@ -30,6 +30,18 @@ type Props = {
   employees: EmployeeRaw[];
 };
 
+type EmployeeMetric = {
+  id: string;
+  name: string;
+  email: string;
+  totalClients: number;
+  convertedClients: number;
+  conversionRate: number;
+  revenue: number;
+  outstanding: number;
+  followups: number;
+};
+
 const COLORS = ["#8884d8", "#82ca9d", "#ffc658", "#ff7f50", "#a0e7e5"];
 
 export default function AdminDashboardClient({
@@ -38,7 +50,7 @@ export default function AdminDashboardClient({
   statusCounts,
   employees,
 }: Props) {
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState<string>("");
   const [fromDate, setFromDate] = useState<string | null>(null);
   const [toDate, setToDate] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<"revenue" | "conversion" | "name">("revenue");
@@ -58,15 +70,16 @@ export default function AdminDashboardClient({
     return true;
   };
 
-  const computed = useMemo(() => {
-    const list = employees.map((emp) => {
+  const computed: EmployeeMetric[] = useMemo(() => {
+    const list: EmployeeMetric[] = employees.map((emp) => {
       const filtered = emp.assignedClients.filter((c) => withinRange(c.createdAt));
       const totalClients = filtered.length;
       const convertedClients = filtered.filter((c) => c.status === "SUCCESS").length;
-      const revenue = filtered.reduce((s, c) => s + (c.feePaid ?? 0), 0);
-      const outstanding = filtered.reduce((s, c) => s + ((c.totalFee ?? 0) - (c.feePaid ?? 0)), 0);
+      const revenue = filtered.reduce((sum, c) => sum + (c.feePaid ?? 0), 0);
+      const outstanding = filtered.reduce((sum, c) => sum + ((c.totalFee ?? 0) - (c.feePaid ?? 0)), 0);
       const followups = filtered.filter((c) => c.status === "FOLLOWUP").length;
       const conversionRate = totalClients ? (convertedClients / totalClients) * 100 : 0;
+
       return {
         id: emp.id,
         name: emp.name,
@@ -96,10 +109,7 @@ export default function AdminDashboardClient({
     });
 
     return sorted;
-  }, [employees, search, fromDate, toDate, sortBy, sortDir, withinRange]); // ✅ added withinRange
-
-  // Proper type for columns
-  type EmployeeMetric = typeof computed[number];
+  }, [employees, search, fromDate, toDate, sortBy, sortDir, withinRange]);
 
   const columns: ColumnDef<EmployeeMetric>[] = [
     {
@@ -153,9 +163,11 @@ export default function AdminDashboardClient({
       String(r.outstanding),
       String(r.followups),
     ]);
+
     const csvContent = [headers, ...rows]
       .map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(","))
       .join("\n");
+
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -240,7 +252,9 @@ export default function AdminDashboardClient({
             <select
               className="input input-bordered"
               value={sortBy}
-              onChange={(e) => setSortBy(e.target.value as "revenue" | "conversion" | "name")}
+              onChange={(e) =>
+                setSortBy(e.target.value as "revenue" | "conversion" | "name")
+              }
             >
               <option value="revenue">Revenue</option>
               <option value="conversion">Conversion %</option>
@@ -264,7 +278,11 @@ export default function AdminDashboardClient({
       {/* Table */}
       <div className="overflow-x-auto">
         <h2 className="text-lg font-semibold mb-2">Employee Performance</h2>
-        <DataTable columns={columns} data={computed} rowLinkPrefix="/admin/employees" />
+        <DataTable<EmployeeMetric, any>
+          columns={columns}
+          data={computed}
+          rowLinkPrefix="/admin/employees"
+        />
       </div>
     </div>
   );

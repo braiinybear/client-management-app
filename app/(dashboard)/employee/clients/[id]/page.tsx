@@ -38,10 +38,11 @@ interface Client {
 export default async function EmployeeClientPage({
   params,
 }: {
-  params: { id: string };
+   params: Promise<{ id: string }>;
 }) {
   const { userId } = await auth();
   if (!userId) redirect("/sign-in");
+  const {id} = await params;
 
   const employee = await prisma.user.findUnique({
     where: { clerkId: userId },
@@ -52,7 +53,7 @@ export default async function EmployeeClientPage({
 
 const clientRaw = await prisma.client.findFirst({
   where: {
-    id: params.id,
+    id: id,
     assignedEmployeeId: employee.id,
   },
   include: {

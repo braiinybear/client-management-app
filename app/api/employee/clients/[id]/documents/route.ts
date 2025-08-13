@@ -18,14 +18,14 @@ async function authorizeEmployee() {
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const employee = await authorizeEmployee();
   if (!employee) {
     return NextResponse.json({ message: "Unauthorized or forbidden" }, { status: 403 });
   }
 
-  const clientId = params.id;
+  const {id : clientId} = await params;
 
   // Check if client exists and belongs to this employee
   const client = await prisma.client.findFirst({
