@@ -24,17 +24,20 @@ import {
   Info,
 } from "lucide-react";
 
+// Document type
 interface Document {
   id: string;
   name: string;
   url: string;
 }
 
+// Employee type
 interface AssignedEmployee {
   id: string;
   name: string;
 }
 
+// Client type
 interface Client {
   id: string;
   name: string;
@@ -54,9 +57,25 @@ interface Client {
   updatedAt: string;
 }
 
+// Props
 interface ClientProfileClientProps {
   client: Client;
   employeeId: string;
+}
+
+// Form Data type
+interface ClientFormData {
+  name: string;
+  email: string;
+  phone: string;
+  status: Status;
+  course: string;
+  hostelFee: string;
+  courseFee: string;
+  totalFee: string;
+  courseFeePaid: string;
+  hostelFeePaid: string;
+  totalFeePaid: string;
 }
 
 export default function ClientProfileClient({
@@ -66,7 +85,7 @@ export default function ClientProfileClient({
   const [detailsEditable, setDetailsEditable] = useState(false);
   const [feesEditable, setFeesEditable] = useState(false);
 
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<ClientFormData>({
     name: client.name,
     email: client.email,
     phone: client.phone,
@@ -119,7 +138,7 @@ export default function ClientProfileClient({
   ) => {
     const { name, value } = e.target;
     if (name === "totalFee" || name === "totalFeePaid") return;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    setFormData(prev => ({ ...prev, [name]: value } as Pick<ClientFormData, keyof ClientFormData>));
   };
 
   const handleCancelEdit = (section: "details" | "fees") => {
@@ -179,7 +198,7 @@ export default function ClientProfileClient({
       });
 
       if (!res.ok) {
-        const data = await res.json();
+        const data: { message?: string } = await res.json();
         throw new Error(data.message || "Update failed");
       }
 
@@ -192,87 +211,72 @@ export default function ClientProfileClient({
     }
   };
 
-  async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-  if (!e.target.files?.length) return;
-  setUploadingDoc(true);
-  setError(null);
-  setSuccess(null);
+  // Document upload
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files?.length) return;
+    setUploadingDoc(true);
+    setError(null);
+    setSuccess(null);
 
-  try {
-    const file = e.target.files[0];
-    const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
-    const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
+    try {
+      const file = e.target.files[0];
+      const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
+      const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
 
-    if (!cloudName || !uploadPreset) {
-      throw new Error("Cloudinary cloud name or upload preset is not set");
-    }
-
-    const formDataCloudinary = new FormData();
-    formDataCloudinary.append("file", file);
-    formDataCloudinary.append("upload_preset", uploadPreset);
-
-    const cloudRes = await fetch(
-      `https://api.cloudinary.com/v1_1/${cloudName}/upload`,
-      {
-        method: "POST",
-        body: formDataCloudinary,
+      if (!cloudName || !uploadPreset) {
+        throw new Error("Cloudinary cloud name or upload preset is not set");
       }
-    );
 
-    if (!cloudRes.ok) throw new Error("Failed to upload document");
+      const formDataCloudinary = new FormData();
+      formDataCloudinary.append("file", file);
+      formDataCloudinary.append("upload_preset", uploadPreset);
 
-    const cloudData = await cloudRes.json();
+      const cloudRes = await fetch(
+        `https://api.cloudinary.com/v1_1/${cloudName}/upload`,
+        { method: "POST", body: formDataCloudinary }
+      );
 
-    const apiRes = await fetch(
-      `/api/employee/clients/${client.id}/documents`,
-      {
+      if (!cloudRes.ok) throw new Error("Failed to upload document");
+
+      const cloudData: { secure_url: string } = await cloudRes.json();
+
+      const apiRes = await fetch(`/api/employee/clients/${client.id}/documents`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: file.name,
-          url: cloudData.secure_url,
-        }),
+        body: JSON.stringify({ name: file.name, url: cloudData.secure_url }),
+      });
+
+      if (!apiRes.ok) {
+        const apiError: { message?: string } = await apiRes.json();
+        throw new Error(apiError.message || "Failed to save document");
       }
-    );
 
-    if (!apiRes.ok) {
-      const apiError = await apiRes.json();
-      throw new Error(apiError.message || "Failed to save document");
+      const newDoc: Document = await apiRes.json();
+      setDocuments((prev) => [...prev, newDoc]);
+      setSuccess("Document uploaded successfully!");
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setUploadingDoc(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
     }
+  };
 
-    const newDoc: Document = await apiRes.json();
-
-    setDocuments((prev) => [...prev, newDoc]);
-    setSuccess("Document uploaded successfully!");
-  } catch (err: any) {
-    setError(err.message);
-  } finally {
-    setUploadingDoc(false);
-    if (fileInputRef.current) fileInputRef.current.value = "";
-  }
-}
-
-
-  async function handleDeleteDoc(docId: string) {
+  // Delete document
+  const handleDeleteDoc = async (docId: string) => {
     if (!confirm("Are you sure you want to delete this document?")) return;
-
     setLoading(true);
     setError(null);
     setSuccess(null);
 
     try {
-      const res = await fetch(
-        `/api/employee/clients/${client.id}/documents/${docId}`,
-        {
-          method: "DELETE",
-        }
-      );
-
+      const res = await fetch(`/api/employee/clients/${client.id}/documents/${docId}`, {
+        method: "DELETE",
+      });
       if (!res.ok) {
-        const errData = await res.json();
+        const errData: { message?: string } = await res.json();
         throw new Error(errData.message || "Failed to delete document");
       }
-
       setDocuments((prev) => prev.filter((doc) => doc.id !== docId));
       setSuccess("Document deleted successfully!");
     } catch (err: any) {
@@ -280,8 +284,8 @@ export default function ClientProfileClient({
     } finally {
       setLoading(false);
     }
-  }
-
+  };
+  
   return (
     <div className="max-w-4xl mx-auto p-6 space-y-10 font-sans">
       {/* Header */}

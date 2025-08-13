@@ -1,7 +1,6 @@
-// app/admin/AdminDashboardClient.tsx
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useCallback } from "react";
 import Link from "next/link";
 import { DataTable } from "./data-table";
 import { ColumnDef } from "@tanstack/react-table";
@@ -56,27 +55,34 @@ export default function AdminDashboardClient({
   const [sortBy, setSortBy] = useState<"revenue" | "conversion" | "name">("revenue");
   const [sortDir, setSortDir] = useState<"desc" | "asc">("desc");
 
-  const withinRange = (iso: string) => {
-    if (!fromDate && !toDate) return true;
-    const d = new Date(iso);
-    if (fromDate) {
-      const f = new Date(fromDate + "T00:00:00");
-      if (d < f) return false;
-    }
-    if (toDate) {
-      const t = new Date(toDate + "T23:59:59");
-      if (d > t) return false;
-    }
-    return true;
-  };
+  // Memoize date range checker
+  const withinRange = useCallback(
+    (iso: string) => {
+      const d = new Date(iso);
+      if (fromDate) {
+        const f = new Date(fromDate + "T00:00:00");
+        if (d < f) return false;
+      }
+      if (toDate) {
+        const t = new Date(toDate + "T23:59:59");
+        if (d > t) return false;
+      }
+      return true;
+    },
+    [fromDate, toDate]
+  );
 
+  // Compute employee metrics
   const computed: EmployeeMetric[] = useMemo(() => {
     const list: EmployeeMetric[] = employees.map((emp) => {
       const filtered = emp.assignedClients.filter((c) => withinRange(c.createdAt));
       const totalClients = filtered.length;
       const convertedClients = filtered.filter((c) => c.status === "SUCCESS").length;
       const revenue = filtered.reduce((sum, c) => sum + (c.feePaid ?? 0), 0);
-      const outstanding = filtered.reduce((sum, c) => sum + ((c.totalFee ?? 0) - (c.feePaid ?? 0)), 0);
+      const outstanding = filtered.reduce(
+        (sum, c) => sum + ((c.totalFee ?? 0) - (c.feePaid ?? 0)),
+        0
+      );
       const followups = filtered.filter((c) => c.status === "FOLLOWUP").length;
       const conversionRate = totalClients ? (convertedClients / totalClients) * 100 : 0;
 
@@ -109,8 +115,9 @@ export default function AdminDashboardClient({
     });
 
     return sorted;
-  }, [employees, search, fromDate, toDate, sortBy, sortDir, withinRange]);
+  }, [employees, search, sortBy, sortDir, withinRange]);
 
+  // Table columns
   const columns: ColumnDef<EmployeeMetric>[] = [
     {
       accessorKey: "name",
@@ -142,6 +149,7 @@ export default function AdminDashboardClient({
     { accessorKey: "followups", header: "Follow-ups" },
   ];
 
+  // Export CSV
   const exportCSV = () => {
     const headers = [
       "Name",
@@ -203,7 +211,13 @@ export default function AdminDashboardClient({
             <div className="w-full h-50">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
-                  <Pie data={statusCounts} dataKey="count" nameKey="status" outerRadius={60} label>
+                  <Pie
+                    data={statusCounts}
+                    dataKey="count"
+                    nameKey="status"
+                    outerRadius={60}
+                    label
+                  >
                     {statusCounts.map((_, i) => (
                       <Cell key={`c-${i}`} fill={COLORS[i % COLORS.length]} />
                     ))}
@@ -278,7 +292,7 @@ export default function AdminDashboardClient({
       {/* Table */}
       <div className="overflow-x-auto">
         <h2 className="text-lg font-semibold mb-2">Employee Performance</h2>
-        <DataTable<EmployeeMetric, any>
+        <DataTable<EmployeeMetric, EmployeeMetric>
           columns={columns}
           data={computed}
           rowLinkPrefix="/admin/employees"
