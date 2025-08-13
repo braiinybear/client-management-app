@@ -2,6 +2,7 @@
 "use client";
 
 import React, { useMemo, useState } from "react";
+import Link from "next/link";
 import { DataTable } from "./data-table";
 import { ColumnDef } from "@tanstack/react-table";
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from "recharts";
@@ -95,9 +96,11 @@ export default function AdminDashboardClient({
     });
 
     return sorted;
-  }, [employees, search, fromDate, toDate, sortBy, sortDir]);
+  }, [employees, search, fromDate, toDate, sortBy, sortDir, withinRange]); // ✅ added withinRange
 
-  type EmployeeMetric = typeof computed extends (infer U)[] ? U : any;
+  // Proper type for columns
+  type EmployeeMetric = typeof computed[number];
+
   const columns: ColumnDef<EmployeeMetric>[] = [
     {
       accessorKey: "name",
@@ -174,12 +177,12 @@ export default function AdminDashboardClient({
 
       {/* Stat Cards + Pie */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        <a href="/admin/clients" className="block hover:opacity-90 transition">
+        <Link href="/admin/clients" className="block hover:opacity-90 transition">
           <StatCard title="Total Clients" value={totalClients.toLocaleString()} />
-        </a>
-        <a href="/admin/employees" className="block hover:opacity-90 transition">
+        </Link>
+        <Link href="/admin/employees" className="block hover:opacity-90 transition">
           <StatCard title="Total Employees" value={totalEmployees.toLocaleString()} />
-        </a>
+        </Link>
         <div className="border rounded-md p-3 bg-white shadow-sm">
           <div className="flex items-center justify-between mb-2">
             <div className="text-sm font-medium">Clients by Status</div>
@@ -234,12 +237,20 @@ export default function AdminDashboardClient({
         <div className="flex flex-col sm:flex-row gap-2 items-start sm:items-center">
           <div className="flex gap-2 items-center">
             <label className="text-sm text-muted-foreground">Sort</label>
-            <select className="input input-bordered" value={sortBy} onChange={(e) => setSortBy(e.target.value as any)}>
+            <select
+              className="input input-bordered"
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as "revenue" | "conversion" | "name")}
+            >
               <option value="revenue">Revenue</option>
               <option value="conversion">Conversion %</option>
               <option value="name">Name</option>
             </select>
-            <select className="input input-bordered" value={sortDir} onChange={(e) => setSortDir(e.target.value as any)}>
+            <select
+              className="input input-bordered"
+              value={sortDir}
+              onChange={(e) => setSortDir(e.target.value as "asc" | "desc")}
+            >
               <option value="desc">Desc</option>
               <option value="asc">Asc</option>
             </select>

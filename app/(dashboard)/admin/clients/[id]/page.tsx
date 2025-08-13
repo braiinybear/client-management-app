@@ -5,7 +5,8 @@ import Link from "next/link";
 import { Archive, FileText, UserCircle } from "lucide-react";
 import { v4 as uuidv4 } from "uuid";
 
-type Document = {
+// Rename Document to ClientDocument to avoid conflict with global Document
+type ClientDocument = {
   id: string;
   name: string;
   url: string;
@@ -17,25 +18,6 @@ type UserSummary = {
   email: string;
 };
 
-// type Client = {
-//   id: string;
-//   name: string;
-//   email: string;
-//   phone: string;
-//   status: string;
-//   course?: string | null;
-//   hostelFee?: number | null;
-//   courseFee?: number | null;
-//   courseFeePaid?: number | null;
-//   hostelFeePaid?: number | null;
-//   totalFeePaid?: number | null;
-//   createdAt: string;
-//   updatedAt: string;
-//   user: UserSummary;
-//   assignedEmployee?: UserSummary | null;
-//   documents: Document[];
-// };
-
 type Props = {
   params: { id: string };
 };
@@ -45,7 +27,7 @@ export const revalidate = 0; // always fetch fresh
 export default async function ClientPage({ params }: Props) {
   const { id } = params;
 
-  // Just logging uuidv4 usage example (not used for id here)
+  // Example UUID (not used)
   console.log("Generated new UUID example:", uuidv4());
 
   const client = await prisma.client.findUnique({
@@ -77,28 +59,23 @@ export default async function ClientPage({ params }: Props) {
     },
   });
 
-  if (!client) {
-    notFound();
-  }
+  if (!client) notFound();
 
-  // Capitalize status
   const statusDisplay = client.status.charAt(0).toUpperCase() + client.status.slice(1).toLowerCase();
 
-  // Calculate remaining fee safely
   const hostelFee = client.hostelFee ?? 0;
   const courseFee = client.courseFee ?? 0;
   const hostelFeePaid = client.hostelFeePaid ?? 0;
   const courseFeePaid = client.courseFeePaid ?? 0;
-
   const totalFee = hostelFee + courseFee;
   const totalPaid = hostelFeePaid + courseFeePaid;
-
   const remainingFee = totalFee - totalPaid;
 
   return (
     <div className="max-w-6xl mx-auto p-8 bg-gray-50 min-h-screen">
       <h1 className="text-4xl font-bold mb-8 text-gray-900 border-b pb-3">Client Details</h1>
 
+      {/* Basic Info */}
       <section className="bg-white rounded-lg shadow-md p-6 mb-8">
         <h2 className="text-2xl font-semibold mb-4 text-gray-800 flex items-center gap-2">
           <UserCircle size={28} /> Basic Information
@@ -123,12 +100,17 @@ export default async function ClientPage({ params }: Props) {
             <span
               className={`inline-block px-3 py-1 rounded-full text-white font-medium
                 ${
-                  client.status === "HOT" ? "bg-red-600" :
-                  client.status === "PROSPECT" ? "bg-yellow-500" :
-                  client.status === "FOLLOWUP" ? "bg-blue-500" :
-                  client.status === "COLD" ? "bg-gray-400" :
-                  client.status === "SUCCESS" ? "bg-green-600" :
-                  "bg-gray-300"
+                  client.status === "HOT"
+                    ? "bg-red-600"
+                    : client.status === "PROSPECT"
+                    ? "bg-yellow-500"
+                    : client.status === "FOLLOWUP"
+                    ? "bg-blue-500"
+                    : client.status === "COLD"
+                    ? "bg-gray-400"
+                    : client.status === "SUCCESS"
+                    ? "bg-green-600"
+                    : "bg-gray-300"
                 }
               `}
             >
@@ -180,24 +162,32 @@ export default async function ClientPage({ params }: Props) {
         </div>
       </section>
 
+      {/* Created By */}
       <section className="bg-white rounded-lg shadow-md p-6 mb-8">
         <h2 className="text-2xl font-semibold mb-4 text-gray-800 flex items-center gap-2">
           <UserCircle size={28} /> Created By
         </h2>
         <p>
-          <Link href={`/admin/employees/${client.user.id}`} className="text-blue-600 hover:underline">
+          <Link
+            href={`/admin/employees/${client.user.id}`}
+            className="text-blue-600 hover:underline"
+          >
             {client.user.name} ({client.user.email})
           </Link>
         </p>
       </section>
 
+      {/* Assigned Employee */}
       <section className="bg-white rounded-lg shadow-md p-6 mb-8">
         <h2 className="text-2xl font-semibold mb-4 text-gray-800 flex items-center gap-2">
           <UserCircle size={28} /> Assigned Employee
         </h2>
         {client.assignedEmployee ? (
           <p>
-            <Link href={`/admin/employees/${client.assignedEmployee.id}`} className="text-blue-600 hover:underline">
+            <Link
+              href={`/admin/employees/${client.assignedEmployee.id}`}
+              className="text-blue-600 hover:underline"
+            >
               {client.assignedEmployee.name} ({client.assignedEmployee.email})
             </Link>
           </p>
@@ -206,14 +196,18 @@ export default async function ClientPage({ params }: Props) {
         )}
       </section>
 
+      {/* Documents */}
       <section className="bg-white rounded-lg shadow-md p-6">
         <h2 className="text-2xl font-semibold mb-4 text-gray-800 flex items-center gap-2">
           <Archive size={28} /> Documents
         </h2>
         {client.documents.length ? (
           <ul className="divide-y divide-gray-200 border rounded-md">
-            {client.documents.map((doc) => (
-              <li key={doc.id} className="flex items-center justify-between p-4 hover:bg-gray-50">
+            {client.documents.map((doc: ClientDocument) => (
+              <li
+                key={doc.id}
+                className="flex items-center justify-between p-4 hover:bg-gray-50"
+              >
                 <div className="flex items-center gap-3">
                   <FileText className="text-gray-500" size={20} />
                   <a
