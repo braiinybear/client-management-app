@@ -24,23 +24,31 @@ model User {
 }
 
 model Client {
-  id                String   @id @default(uuid())
-  name              String
-  email             String
-  phone             String
-  status            Status
-  course            String?
-  hostelFee         Int?
-  totalFee          Int?
-  feePaid           Int?
-  userId            String
-  user              User     @relation(fields: [userId], references: [id])
+  id                 String   @id @default(uuid())
+  name               String
+  email              String
+  phone              String
+  status             Status
+  course             String?
+  hostelFee          Float?
+  totalFee           Float?
+  courseFee          Float?
+  courseFeePaid      Float?
+  hostelFeePaid      Float?
+  totalFeePaid       Float?
+  userId             String
+  user               User     @relation(fields: [userId], references: [id])
 
-  assignedEmployeeId String?  // NEW: optional employee assigned to this client
+  assignedEmployeeId String?
   assignedEmployee   User?    @relation("EmployeeClients", fields: [assignedEmployeeId], references: [id])
 
-  documents         Document[]
+  documents          Document[]
+
+  createdAt          DateTime @default(now()) // ✅ Added
+  updatedAt          DateTime @updatedAt      // ✅ Optional but useful
 }
+
+
 
 model Document {
   id        String   @id @default(uuid())

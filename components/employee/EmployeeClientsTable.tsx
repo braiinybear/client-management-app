@@ -1,61 +1,42 @@
-'use client';
+"use client";
 
-import React, { useEffect, useState } from "react";
-import Link from "next/link";
-import { Client } from "../columns";
-import { cn } from "@/lib/utils";
+import React, { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
+import { cn } from "@/lib/utils";
 
-export default function AdminClientsPage() {
-  const [clients, setClients] = useState<Client[]>([]);
-  const [filteredClients, setFilteredClients] = useState<Client[]>([]);
+export interface Client {
+  id: string;
+  name: string | null;
+  email: string | null;
+  phone: string | null;
+  status: string | null;
+}
+
+export default function EmployeeClientsTable({ clients }: { clients: Client[] }) {
   const [search, setSearch] = useState("");
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
-
   const router = useRouter();
 
-  const fetchClients = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await fetch("/api/admin/clients");
-      if (!res.ok) throw new Error(`Failed to fetch clients: ${res.statusText}`);
-      const data: Client[] = await res.json();
-      setClients(data);
-      setFilteredClients(data);
-    } catch (err) {
-      setError((err as Error).message || "Something went wrong.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchClients();
-  }, []);
-
-  // Search filter
-  useEffect(() => {
-    if (!search.trim()) {
-      setFilteredClients(clients);
-    } else {
-      const lower = search.toLowerCase();
-      setFilteredClients(
-        clients.filter((c) =>
-          [c.name ?? "", c.email ?? "", c.phone ?? "", c.status ?? ""].some((field) =>
-            field.toLowerCase().includes(lower)
-          )
-        )
-      );
-    }
-    setCurrentPage(1); // Reset page on filter
+  const filteredClients = useMemo(() => {
+    if (!search.trim()) return clients;
+    const lower = search.toLowerCase();
+    return clients.filter((c) =>
+      [c.name ?? "", c.email ?? "", c.phone ?? "", c.status ?? ""].some((field) =>
+        field.toLowerCase().includes(lower)
+      )
+    );
   }, [search, clients]);
 
-  const getStatusColor = (status?: string) => {
-    switch (status?.toLowerCase()) {
+  const totalPages = Math.ceil(filteredClients.length / itemsPerPage);
+  const paginatedClients = filteredClients.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+
+  const getStatusColor = (status: string | null | undefined): string => {
+    const safeStatus = status?.toLowerCase() ?? "";
+    switch (safeStatus) {
       case "hot":
         return "bg-red-100 text-red-700";
       case "prospect":
@@ -79,36 +60,25 @@ export default function AdminClientsPage() {
       c.phone || "",
       c.status || "",
     ]);
-
     const csvContent = [headers, ...rows]
       .map((row) => row.map((field) => `"${String(field).replace(/"/g, '""')}"`).join(","))
       .join("\n");
 
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
-
     const a = document.createElement("a");
     a.href = url;
     a.download = "clients.csv";
     a.click();
-
     URL.revokeObjectURL(url);
   };
 
-  // Pagination
-  const totalPages = Math.ceil(filteredClients.length / itemsPerPage);
-  const paginatedClients = filteredClients.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  );
-
   return (
     <div className="p-4 sm:p-6 max-w-7xl mx-auto">
-      {/* Toolbar */}
       <div className="bg-white shadow-sm border rounded-lg p-4 mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold text-gray-800">Clients</h1>
-          <p className="text-gray-500 text-sm">Manage and monitor all registered clients</p>
+          <p className="text-gray-500 text-sm">Assigned clients only</p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           <input
@@ -119,12 +89,6 @@ export default function AdminClientsPage() {
             className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-48 sm:w-64"
           />
           <button
-            onClick={fetchClients}
-            className="px-4 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-500 transition"
-          >
-            Refresh
-          </button>
-          <button
             onClick={downloadCSV}
             className="px-4 py-2 rounded-md bg-green-600 text-white hover:bg-green-500 transition"
           >
@@ -133,31 +97,7 @@ export default function AdminClientsPage() {
         </div>
       </div>
 
-      {/* Loading */}
-      {loading && (
-        <div className="flex justify-center items-center py-20 space-x-2">
-          <div className="w-3 h-3 bg-blue-500 rounded-full animate-bounce"></div>
-          <div className="w-3 h-3 bg-blue-500 rounded-full animate-bounce [animation-delay:-0.2s]"></div>
-          <div className="w-3 h-3 bg-blue-500 rounded-full animate-bounce [animation-delay:-0.4s]"></div>
-          <span className="ml-3 text-gray-500">Loading clients...</span>
-        </div>
-      )}
-
-      {/* Error */}
-      {error && (
-        <div className="bg-red-50 border border-red-400 text-red-700 px-4 py-3 rounded-md max-w-lg mx-auto">
-          <strong className="font-bold">Error:</strong> {error}
-          <button
-            onClick={fetchClients}
-            className="ml-3 underline text-red-800 hover:no-underline"
-          >
-            Retry
-          </button>
-        </div>
-      )}
-
-      {/* Data Table */}
-      {!loading && !error && paginatedClients.length > 0 && (
+      {paginatedClients.length > 0 ? (
         <>
           <div className="bg-white rounded-lg shadow-sm border overflow-x-auto">
             <table className="w-full border-collapse min-w-[600px]">
@@ -170,10 +110,10 @@ export default function AdminClientsPage() {
                 </tr>
               </thead>
               <tbody>
-                {paginatedClients.map((c, idx) => (
+                {paginatedClients.map((c) => (
                   <tr
-                    onClick={() => router.push(`clients/${c.id}`)}
-                    key={idx}
+                    key={c.id}
+                    onClick={() => router.push(`/employee/clients/${c.id}`)}
                     className="hover:bg-gray-50 cursor-pointer transition-colors border-b last:border-0"
                   >
                     <td className="px-4 py-3">{c.name || "—"}</td>
@@ -195,7 +135,6 @@ export default function AdminClientsPage() {
             </table>
           </div>
 
-          {/* Pagination Controls */}
           <div className="flex justify-center items-center mt-6 space-x-2">
             <button
               onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
@@ -226,12 +165,10 @@ export default function AdminClientsPage() {
             </button>
           </div>
         </>
-      )}
-
-      {/* Empty */}
-      {!loading && !error && filteredClients.length === 0 && (
-        <div className="text-center py-20 text-gray-500">No matching clients found.</div>
+      ) : (
+        <div className="text-center py-20 text-gray-500">No clients found.</div>
       )}
     </div>
   );
 }
+

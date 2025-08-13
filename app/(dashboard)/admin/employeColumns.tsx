@@ -4,11 +4,23 @@ export type Employee = {
   id: string;
   name: string;
   email: string;
-  role: string; // or whatever fields you need
+  role: string;
 };
 
 export const columns: ColumnDef<Employee>[] = [
-  { accessorKey: "name", header: "Name" },
-  { accessorKey: "email", header: "Email" },
-  { accessorKey: "role", header: "Role" },
+  {
+    id: "name",
+    accessorKey: "name",
+    header: "Name",
+  },
+  {
+    id: "email",
+    accessorKey: "email",
+    header: "Email",
+  },
+  {
+    id: "role",
+    accessorKey: "role",
+    header: "Role",
+  },
 ];

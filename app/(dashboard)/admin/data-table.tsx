@@ -1,7 +1,13 @@
 'use client';
 
 import { useRouter } from "next/navigation";
-import { ColumnDef, useReactTable, getCoreRowModel, flexRender } from "@tanstack/react-table";
+import {
+  ColumnDef,
+  useReactTable,
+  getCoreRowModel,
+  flexRender,
+} from "@tanstack/react-table";
+
 import {
   Table,
   TableHeader,
@@ -11,11 +17,13 @@ import {
   TableCell,
 } from "@/components/ui/table";
 
+import Link from "next/link";
+
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
-  rowLinkPrefix?: string; // 👈 NEW
-  getRowId?: (row: TData) => string; // Optional custom id getter
+  rowLinkPrefix?: string;
+  getRowId?: (row: TData) => string;
 }
 
 export function DataTable<TData extends { id: string }, TValue>({
@@ -31,12 +39,6 @@ export function DataTable<TData extends { id: string }, TValue>({
   });
 
   const router = useRouter();
-
-  const handleRowClick = (id: string) => {
-    if (rowLinkPrefix) {
-      router.push(`${rowLinkPrefix}/${id}`);
-    }
-  };
 
   return (
     <div className="overflow-x-auto rounded-md border">
@@ -65,17 +67,28 @@ export function DataTable<TData extends { id: string }, TValue>({
               return (
                 <TableRow
                   key={row.id}
-                  onClick={() => handleRowClick(id)}
-                  className={rowLinkPrefix ? "cursor-pointer hover:bg-muted/50 transition" : ""}
+                  className={
+                    rowLinkPrefix ? "cursor-pointer hover:bg-muted/50 transition" : ""
+                  }
                 >
-                  {row.getVisibleCells().map((cell) => (
-                    <TableCell
-                      key={cell.id}
-                      className="whitespace-nowrap px-2 py-1 text-sm sm:px-4 sm:py-2 sm:text-base"
-                    >
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                    </TableCell>
-                  ))}
+                  {row.getVisibleCells().map((cell) => {
+                    const isActionColumn = cell.column.id === "actions" || cell.column.id === "role";
+
+                    return (
+                      <TableCell
+                        key={cell.id}
+                        className="whitespace-nowrap px-2 py-1 text-sm sm:px-4 sm:py-2 sm:text-base"
+                      >
+                        {rowLinkPrefix && !isActionColumn ? (
+                          <Link href={`${rowLinkPrefix}/${id}`}>
+                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                          </Link>
+                        ) : (
+                          flexRender(cell.column.columnDef.cell, cell.getContext())
+                        )}
+                      </TableCell>
+                    );
+                  })}
                 </TableRow>
               );
             })
