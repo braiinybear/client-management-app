@@ -1,18 +1,21 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { Button } from "../ui/button";
+import { toast } from "sonner";
+import { DeleteDialog } from "../DeleteDialog";
 
 export interface Client {
   id: string;
   name: string | null;
-  email: string | null;
   phone: string | null;
   status: string | null;
 }
 
-export default function EmployeeClientsTable({ clients }: { clients: Client[] }) {
+export default function EmployeeClientsTable({ clients: initialClients }: { clients: Client[] }) {
+  const [clients, setClients] = useState<Client[]>(initialClients);
   const [search, setSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
@@ -22,7 +25,7 @@ export default function EmployeeClientsTable({ clients }: { clients: Client[] })
     if (!search.trim()) return clients;
     const lower = search.toLowerCase();
     return clients.filter((c) =>
-      [c.name ?? "", c.email ?? "", c.phone ?? "", c.status ?? ""].some((field) =>
+      [c.name ?? "", c.phone ?? "", c.status ?? ""].some((field) =>
         field.toLowerCase().includes(lower)
       )
     );
@@ -52,14 +55,29 @@ export default function EmployeeClientsTable({ clients }: { clients: Client[] })
     }
   };
 
+  const handleDelete = async (id: string) => {
+    try {
+      const res = await fetch(`/api/employee/clients/${id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error("Deletion failed");
+
+      toast.success("Client deleted");
+
+      // Update local state to remove deleted client
+      setClients((prev) => prev.filter((c) => c.id !== id));
+
+      // Adjust pagination if current page is now empty
+      const newTotalPages = Math.ceil((filteredClients.length - 1) / itemsPerPage);
+      if (currentPage > newTotalPages) setCurrentPage(newTotalPages || 1);
+
+    } catch (error) {
+      console.error(error);
+      toast.error("Error deleting client");
+    }
+  };
+
   const downloadCSV = () => {
-    const headers = ["Name", "Email", "Phone", "Status"];
-    const rows = filteredClients.map((c) => [
-      c.name || "",
-      c.email || "",
-      c.phone || "",
-      c.status || "",
-    ]);
+    const headers = ["Name", "Phone", "Status"];
+    const rows = filteredClients.map((c) => [c.name || "", c.phone || "", c.status || ""]);
     const csvContent = [headers, ...rows]
       .map((row) => row.map((field) => `"${String(field).replace(/"/g, '""')}"`).join(","))
       .join("\n");
@@ -75,6 +93,7 @@ export default function EmployeeClientsTable({ clients }: { clients: Client[] })
 
   return (
     <div className="p-4 sm:p-6 max-w-7xl mx-auto">
+      {/* Header */}
       <div className="bg-white shadow-sm border rounded-lg p-4 mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold text-gray-800">Clients</h1>
@@ -97,6 +116,7 @@ export default function EmployeeClientsTable({ clients }: { clients: Client[] })
         </div>
       </div>
 
+      {/* Table */}
       {paginatedClients.length > 0 ? (
         <>
           <div className="bg-white rounded-lg shadow-sm border overflow-x-auto">
@@ -104,9 +124,9 @@ export default function EmployeeClientsTable({ clients }: { clients: Client[] })
               <thead className="bg-gray-50 border-b sticky top-0">
                 <tr>
                   <th className="text-left px-4 py-3 text-sm font-medium text-gray-600">Name</th>
-                  <th className="text-left px-4 py-3 text-sm font-medium text-gray-600">Email</th>
                   <th className="text-left px-4 py-3 text-sm font-medium text-gray-600">Phone</th>
                   <th className="text-left px-4 py-3 text-sm font-medium text-gray-600">Status</th>
+                  <th className="text-left px-4 py-3 text-sm font-medium text-gray-600">Action</th>
                 </tr>
               </thead>
               <tbody>
@@ -117,17 +137,16 @@ export default function EmployeeClientsTable({ clients }: { clients: Client[] })
                     className="hover:bg-gray-50 cursor-pointer transition-colors border-b last:border-0"
                   >
                     <td className="px-4 py-3">{c.name || "—"}</td>
-                    <td className="px-4 py-3">{c.email || "—"}</td>
                     <td className="px-4 py-3">{c.phone || "—"}</td>
                     <td className="px-4 py-3">
-                      <span
-                        className={cn(
-                          "px-2 py-1 rounded-full text-xs font-medium",
-                          getStatusColor(c.status)
-                        )}
-                      >
+                      <span className={cn("px-2 py-1 rounded-full text-xs font-medium", getStatusColor(c.status))}>
                         {c.status || "Unknown"}
                       </span>
+                    </td>
+                    <td   onClick={(e) => {
+                          e.stopPropagation(); // Prevent row click
+                        }} className="px-4 py-3">
+                      <DeleteDialog onConfirm={() => handleDelete(c.id)} />
                     </td>
                   </tr>
                 ))}
@@ -135,6 +154,7 @@ export default function EmployeeClientsTable({ clients }: { clients: Client[] })
             </table>
           </div>
 
+          {/* Pagination */}
           <div className="flex justify-center items-center mt-6 space-x-2">
             <button
               onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
@@ -171,4 +191,3 @@ export default function EmployeeClientsTable({ clients }: { clients: Client[] })
     </div>
   );
 }
-

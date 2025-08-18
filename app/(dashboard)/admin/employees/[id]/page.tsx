@@ -54,7 +54,7 @@ export default async function EmployeePage({ params }: Props) {
   // Aggregate performance data
   const statusCounts = employee.assignedClients.reduce<Record<Status, number>>(
     (acc, client) => {
-      acc[client.status] = (acc[client.status] || 0) + 1;
+      acc[client.status as Status] = (acc[client.status as Status] || 0) + 1;
       return acc;
     },
     {} as Record<Status, number>
@@ -145,9 +145,9 @@ export default async function EmployeePage({ params }: Props) {
                     <td className="px-6 py-4 font-medium text-gray-900">{client.name}</td>
                     <td className="px-6 py-4">
                       <span
-                        className={`px-2 py-1 text-xs font-medium rounded ${getStatusBadge(client.status)}`}
+                        className={`px-2 py-1 text-xs font-medium rounded ${getStatusBadge(client.status as Status)}`}
                       >
-                        {client.status.toLowerCase()}
+                        {client.status?.toLowerCase()}
                       </span>
                     </td>
                   </tr>

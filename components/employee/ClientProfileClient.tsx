@@ -23,6 +23,10 @@ import {
   IndianRupee,
   Info,
 } from "lucide-react";
+import { DeleteDialog } from "../DeleteDialog";
+import { toast } from "sonner";
+import { useRouter } from "next/navigation";
+
 
 // Document type
 interface Document {
@@ -40,9 +44,8 @@ interface AssignedEmployee {
 // Client type
 interface Client {
   id: string;
-  name: string;
-  email: string;
-  phone: string;
+  name?: string;
+  phone?: string;
   status: Status;
   course?: string | null;
   hostelFee?: number | null;
@@ -65,9 +68,8 @@ interface ClientProfileClientProps {
 
 // Form Data type
 interface ClientFormData {
-  name: string;
-  email: string;
-  phone: string;
+  name?: string;
+  phone?: string;
   status: Status;
   course: string;
   hostelFee: string;
@@ -86,8 +88,7 @@ export default function ClientProfileClient({
   const [feesEditable, setFeesEditable] = useState(false);
 
   const [formData, setFormData] = useState<ClientFormData>({
-    name: client.name,
-    email: client.email,
+    name: client.name ?? "",
     phone: client.phone,
     status: client.status,
     course: client.course ?? "",
@@ -105,6 +106,9 @@ export default function ClientProfileClient({
   const [documents, setDocuments] = useState<Document[]>(client.documents);
   const [uploadingDoc, setUploadingDoc] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+const router = useRouter();
+
 
   useEffect(() => {
     if (success) {
@@ -148,7 +152,6 @@ export default function ClientProfileClient({
       setFormData((prev) => ({
         ...prev,
         name: client.name,
-        email: client.email,
         phone: client.phone,
         status: client.status,
         course: client.course ?? "",
@@ -177,7 +180,6 @@ export default function ClientProfileClient({
         section === "details"
           ? {
               name: formData.name,
-              email: formData.email,
               phone: formData.phone,
               status: formData.status,
               course: formData.course,
@@ -285,6 +287,21 @@ export default function ClientProfileClient({
       setLoading(false);
     }
   };
+
+    const handleDelete = async (id: string) => {
+      try {
+        const res = await fetch(`/api/employee/clients/${id}`, { method: "DELETE" });
+        if (!res.ok) throw new Error("Deletion failed");
+  
+        toast.success("Client deleted");
+        router.push('/employee/clients')
+  
+      } catch (error) {
+        console.error(error);
+        toast.error("Error deleting client");
+      }
+    };
+
   
   return (
     <div className="max-w-4xl mx-auto p-6 space-y-10 font-sans">
@@ -306,17 +323,20 @@ export default function ClientProfileClient({
 
       {/* Overview */}
       <Card className="shadow-lg border border-gray-200 hover:shadow-xl transition-shadow duration-300">
-        <CardHeader className="flex items-center gap-2">
-          <FileText className="w-6 h-6 text-indigo-600" />
+        <CardHeader className="flex justify-between items-center gap-2">
+          <div className="flex items-center justify-center gap-2">
+            <FileText className="w-6 h-6 text-indigo-600" />
           <CardTitle>Client Overview</CardTitle>
+          </div>
+
+          
+        <DeleteDialog onConfirm={() => handleDelete(client.id)} />
         </CardHeader>
         <CardContent className="space-y-2 text-gray-700 text-base">
           <p>
             <strong>Name:</strong> {client.name}
           </p>
-          <p>
-            <strong>Email:</strong> {client.email}
-          </p>
+
           <p>
             <strong>Phone:</strong> {client.phone}
           </p>

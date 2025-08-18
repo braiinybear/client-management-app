@@ -20,7 +20,6 @@ export default async function EmployeeClientsPage() {
     select: {
       id: true,
       name: true,
-      email: true,
       phone: true,
       status: true,
     },

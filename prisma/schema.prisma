@@ -25,10 +25,11 @@ model User {
 
 model Client {
   id                 String   @id @default(uuid())
-  name               String
-  email              String
-  phone              String
-  status             Status
+  name               String?
+  phone              String   @unique 
+  notes              String?
+  callResponse       CallResponse?
+  status             Status?
   course             String?
   hostelFee          Float?
   totalFee           Float?
@@ -70,4 +71,11 @@ enum Status {
   FOLLOWUP
   COLD
   SUCCESS
+}
+
+
+enum CallResponse {
+  HANGUP
+  NOTINTERESTED
+  WRONG
 }

@@ -4,18 +4,17 @@ import prisma from "@/lib/prisma"; // Import Status enum
 import { Status } from "@prisma/client";
 
 
-// Document type for POST
 type DocumentInput = {
   name: string;
   url: string;
 };
 
-// Client creation body type
 type ClientInput = {
-  name: string;
-  email: string;
-  phone: string;
-  status?: Status; // must match Prisma enum
+  name?: string;
+  phone?: string;
+  status?: Status; // Enum from @prisma/client
+  callResponse?: string | null;
+  notes?: string | null;
   course?: string | null;
   hostelFee?: number | null;
   courseFee?: number | null;
@@ -35,6 +34,7 @@ export async function GET() {
   try {
     const clients = await prisma.client.findMany({
       where: { assignedEmployeeId: userId },
+      orderBy: { createdAt: "desc" },
       include: { documents: true },
     });
 
@@ -45,6 +45,7 @@ export async function GET() {
   }
 }
 
+
 export async function POST(req: Request) {
   try {
     const { userId } = await auth();
@@ -54,48 +55,57 @@ export async function POST(req: Request) {
 
     const body: ClientInput = await req.json();
 
-    if (!body.name || !body.email || !body.phone) {
+    // Validate required fields
+    if (!body.name || !body.phone) {
       return NextResponse.json({ message: "Missing required fields" }, { status: 400 });
     }
 
-    // Find the employee (app user)
+    // Find the employee (Clerk user linked to app user)
     const me = await prisma.user.findUnique({ where: { clerkId: userId } });
-    if (!me) return NextResponse.json({ message: "User not found" }, { status: 404 });
+    if (!me) {
+      return NextResponse.json({ message: "User not found" }, { status: 404 });
+    }
 
-    // Ensure status is valid enum, default to HOT if undefined
-    const clientStatus: Status = body.status ?? Status.PROSPECT;
+    const clientStatus = body.status ?? Status.PROSPECT;
 
-    // Prepare client data
-    const data = {
-      name: body.name,
-      email: body.email,
-      phone: body.phone,
-      status: clientStatus,
-      course: body.course ?? null,
-      hostelFee: body.hostelFee ?? null,
-      courseFee: body.courseFee ?? null,
-      totalFee: body.totalFee ?? null,
-      courseFeePaid: body.courseFeePaid ?? null,
-      hostelFeePaid: body.hostelFeePaid ?? null,
-      totalFeePaid: body.totalFeePaid ?? null,
-      userId: me.id,                 // who created the client
-      assignedEmployeeId: me.id,     // assign to this employee
-      documents:
-        Array.isArray(body.documents) && body.documents.length > 0
-          ? { create: body.documents.map((d: DocumentInput) => ({ name: d.name, url: d.url })) }
-          : undefined,
-    };
-
-    // Create client in DB
     const created = await prisma.client.create({
-      data,
-      include: { documents: true },
+      data: {
+        name: body.name,
+        phone: body.phone,
+        status: clientStatus,
+        callResponse: body.callResponse as any, // optional enum, use as any if not casted properly
+        notes: body.notes ?? null,
+        course: body.course ?? null,
+        hostelFee: body.hostelFee ?? null,
+        courseFee: body.courseFee ?? null,
+        totalFee: body.totalFee ?? null,
+        courseFeePaid: body.courseFeePaid ?? null,
+        hostelFeePaid: body.hostelFeePaid ?? null,
+        totalFeePaid: body.totalFeePaid ?? null,
+
+        userId: me.id,
+        assignedEmployeeId: me.id,
+
+        documents: body.documents && body.documents.length > 0
+          ? {
+              create: body.documents.map(doc => ({
+                name: doc.name,
+                url: doc.url,
+              })),
+            }
+          : undefined,
+      },
+      include: {
+        documents: true,
+      },
     });
 
     return NextResponse.json(created, { status: 201 });
+
   } catch (err) {
-    console.error(err);
+    console.error("[CLIENT_POST]", err);
     const message = err instanceof Error ? err.message : "Server error";
     return NextResponse.json({ message }, { status: 500 });
   }
 }
+

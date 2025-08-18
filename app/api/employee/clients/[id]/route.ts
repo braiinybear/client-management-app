@@ -81,3 +81,54 @@ export async function PUT(
     return NextResponse.json({ message: "Internal Server Error" }, { status: 500 });
   }
 }
+
+
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id: clientId } = await params;
+
+  const { userId } = await auth();
+  if (!userId) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+
+  const employee = await prisma.user.findUnique({
+    where: { clerkId: userId },
+    select: { id: true, role: true },
+  });
+
+  if (!employee || employee.role !== "EMPLOYEE") {
+    return NextResponse.json({ message: "Forbidden" }, { status: 403 });
+  }
+
+  const client = await prisma.client.findFirst({
+    where: {
+      id: clientId,
+      assignedEmployeeId: employee.id,
+    },
+  });
+
+  if (!client) {
+    return NextResponse.json(
+      { message: "Client not found or not assigned to you" },
+      { status: 404 }
+    );
+  }
+
+  try {
+    // Delete associated documents (adjust the model/table name and field as per your schema)
+    await prisma.document.deleteMany({
+      where: { clientId: clientId },
+    });
+
+    // Then delete the client
+    await prisma.client.delete({
+      where: { id: clientId },
+    });
+
+    return NextResponse.json({ message: "Client and associated documents deleted successfully" });
+  } catch (error) {
+    console.error("Delete error:", error);
+    return NextResponse.json({ message: "Internal Server Error" }, { status: 500 });
+  }
+}

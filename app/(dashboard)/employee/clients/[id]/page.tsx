@@ -18,9 +18,8 @@ interface AssignedEmployee {
 
 interface Client {
   id: string;
-  name: string;
-  email: string;
-  phone: string;
+  name?: string;
+  phone?: string;
   status: Status;
   course?: string | null;
   hostelFee?: number | null;
@@ -63,7 +62,7 @@ const clientRaw = await prisma.client.findFirst({
 });
 
   if (!clientRaw) notFound();
-
+// @ts-ignore
   const client: Client = {
     ...clientRaw,
     createdAt: clientRaw.createdAt.toISOString(),

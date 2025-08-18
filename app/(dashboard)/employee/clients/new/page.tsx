@@ -29,7 +29,6 @@ export default function NewClientPage() {
 
   const [formData, setFormData] = useState({
     name: "",
-    email: "",
     phone: "",
     status: "HOT" as Status,
     course: "",
@@ -126,14 +125,12 @@ export default function NewClientPage() {
 
     try {
       if (!formData.name.trim()) throw new Error("Name is required");
-      if (!formData.email.trim()) throw new Error("Email is required");
       if (!formData.phone.trim()) throw new Error("Phone is required");
 
       const pendingDocs = documents.filter((d) => !d.saved).map((d) => ({ name: d.name, url: d.url }));
 
       const payload: any = {
         name: formData.name.trim(),
-        email: formData.email.trim(),
         phone: formData.phone.trim(),
         status: formData.status,
         course: formData.course?.trim() || null,
@@ -191,11 +188,6 @@ export default function NewClientPage() {
             <div>
               <Label>Name</Label>
               <Input name="name" value={formData.name} onChange={handleChange} required />
-            </div>
-
-            <div>
-              <Label>Email</Label>
-              <Input name="email" type="email" value={formData.email} onChange={handleChange} required />
             </div>
 
             <div>

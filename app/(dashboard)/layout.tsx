@@ -49,6 +49,7 @@ export default async function DashboardLayout({
     { label: "My Dashboard", href: "/employee" },
     { label: "My Clients", href: "/employee/clients" },
     { label: "Add Client", href: "/employee/clients/new" },
+    { label: "Upload Clients", href: "/employee/clients/upload" },
   ];
 
   const links = role === "ADMIN" ? adminLinks : employeeLinks;

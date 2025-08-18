@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useEffect, useState } from "react";
-import Link from "next/link";
 import { Client } from "../columns";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
@@ -101,6 +100,43 @@ export default function AdminClientsPage() {
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage
   );
+
+  const MAX_VISIBLE_PAGES = 5;
+
+  // Returns an array of page numbers and ellipsis placeholders
+  const getPageNumbers = () => {
+    const pages: (number | string)[] = [];
+
+    if (totalPages <= MAX_VISIBLE_PAGES) {
+      // Show all pages
+      for (let i = 1; i <= totalPages; i++) {
+        pages.push(i);
+      }
+    } else {
+      // Always show first page
+      pages.push(1);
+
+      const leftSiblingIndex = Math.max(currentPage - 1, 2);
+      const rightSiblingIndex = Math.min(currentPage + 1, totalPages - 1);
+
+      if (leftSiblingIndex > 2) {
+        pages.push("left-ellipsis");
+      }
+
+      for (let i = leftSiblingIndex; i <= rightSiblingIndex; i++) {
+        pages.push(i);
+      }
+
+      if (rightSiblingIndex < totalPages - 1) {
+        pages.push("right-ellipsis");
+      }
+
+      // Always show last page
+      pages.push(totalPages);
+    }
+
+    return pages;
+  };
 
   return (
     <div className="p-4 sm:p-6 max-w-7xl mx-auto">
@@ -205,17 +241,27 @@ export default function AdminClientsPage() {
               Prev
             </button>
 
-            {Array.from({ length: totalPages }, (_, i) => (
-              <button
-                key={i}
-                onClick={() => setCurrentPage(i + 1)}
-                className={`px-3 py-1 rounded border text-sm ${
-                  currentPage === i + 1 ? "bg-blue-600 text-white" : "bg-white"
-                }`}
-              >
-                {i + 1}
-              </button>
-            ))}
+            {getPageNumbers().map((page, idx) => {
+              if (page === "left-ellipsis" || page === "right-ellipsis") {
+                return (
+                  <span key={page + idx} className="px-2 select-none">
+                    &hellip;
+                  </span>
+                );
+              }
+
+              return (
+                <button
+                  key={page}
+                  onClick={() => setCurrentPage(Number(page))}
+                  className={`px-3 py-1 rounded border text-sm ${
+                    currentPage === page ? "bg-blue-600 text-white" : "bg-white"
+                  }`}
+                >
+                  {page}
+                </button>
+              );
+            })}
 
             <button
               onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
