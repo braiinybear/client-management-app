@@ -62,7 +62,7 @@ const clientRaw = await prisma.client.findFirst({
 });
 
   if (!clientRaw) notFound();
-// @ts-ignore
+  // @ts-expect-error
   const client: Client = {
     ...clientRaw,
     createdAt: clientRaw.createdAt.toISOString(),
