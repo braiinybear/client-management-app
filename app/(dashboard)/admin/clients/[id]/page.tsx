@@ -35,7 +35,6 @@ export default async function ClientPage({ params }: Props) {
     select: {
       id: true,
       name: true,
-      email: true,
       phone: true,
       status: true,
       course: true,
@@ -48,7 +47,7 @@ export default async function ClientPage({ params }: Props) {
       createdAt: true,
       updatedAt: true,
       user: {
-        select: { id: true, name: true, email: true },
+        select: { id: true, name: true},
       },
       assignedEmployee: {
         select: { id: true, name: true, email: true },
@@ -61,7 +60,9 @@ export default async function ClientPage({ params }: Props) {
 
   if (!client) notFound();
 
-  const statusDisplay = client.status.charAt(0).toUpperCase() + client.status.slice(1).toLowerCase();
+const status = client?.status || '';
+const statusDisplay = status.charAt(0).toUpperCase() + status.slice(1).toLowerCase();
+
 
   const hostelFee = client.hostelFee ?? 0;
   const courseFee = client.courseFee ?? 0;
@@ -85,12 +86,7 @@ export default async function ClientPage({ params }: Props) {
             <p className="font-semibold text-gray-900">Name</p>
             <p className="text-lg">{client.name}</p>
           </div>
-          <div>
-            <p className="font-semibold text-gray-900">Email</p>
-            <a href={`mailto:${client.email}`} className="text-blue-600 hover:underline">
-              {client.email}
-            </a>
-          </div>
+          
           <div>
             <p className="font-semibold text-gray-900">Phone</p>
             <p className="text-lg">{client.phone}</p>
@@ -172,7 +168,7 @@ export default async function ClientPage({ params }: Props) {
             href={`/admin/employees/${client.user.id}`}
             className="text-blue-600 hover:underline"
           >
-            {client.user.name} ({client.user.email})
+            {client.user.name} 
           </Link>
         </p>
       </section>

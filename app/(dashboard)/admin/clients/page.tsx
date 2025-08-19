@@ -36,7 +36,7 @@ export default function AdminClientsPage() {
     fetchClients();
   }, []);
 
-  // Search filter
+  // Search filter (without email)
   useEffect(() => {
     if (!search.trim()) {
       setFilteredClients(clients);
@@ -44,7 +44,7 @@ export default function AdminClientsPage() {
       const lower = search.toLowerCase();
       setFilteredClients(
         clients.filter((c) =>
-          [c.name ?? "", c.email ?? "", c.phone ?? "", c.status ?? ""].some((field) =>
+          [c.name ?? "", c.phone ?? "", c.status ?? ""].some((field) =>
             field.toLowerCase().includes(lower)
           )
         )
@@ -71,10 +71,9 @@ export default function AdminClientsPage() {
   };
 
   const downloadCSV = () => {
-    const headers = ["Name", "Email", "Phone", "Status"];
+    const headers = ["Name", "Phone", "Status"];  // Removed Email
     const rows = filteredClients.map((c) => [
       c.name || "",
-      c.email || "",
       c.phone || "",
       c.status || "",
     ]);
@@ -103,17 +102,14 @@ export default function AdminClientsPage() {
 
   const MAX_VISIBLE_PAGES = 5;
 
-  // Returns an array of page numbers and ellipsis placeholders
   const getPageNumbers = () => {
     const pages: (number | string)[] = [];
 
     if (totalPages <= MAX_VISIBLE_PAGES) {
-      // Show all pages
       for (let i = 1; i <= totalPages; i++) {
         pages.push(i);
       }
     } else {
-      // Always show first page
       pages.push(1);
 
       const leftSiblingIndex = Math.max(currentPage - 1, 2);
@@ -131,7 +127,6 @@ export default function AdminClientsPage() {
         pages.push("right-ellipsis");
       }
 
-      // Always show last page
       pages.push(totalPages);
     }
 
@@ -200,7 +195,6 @@ export default function AdminClientsPage() {
               <thead className="bg-gray-50 border-b sticky top-0">
                 <tr>
                   <th className="text-left px-4 py-3 text-sm font-medium text-gray-600">Name</th>
-                  <th className="text-left px-4 py-3 text-sm font-medium text-gray-600">Email</th>
                   <th className="text-left px-4 py-3 text-sm font-medium text-gray-600">Phone</th>
                   <th className="text-left px-4 py-3 text-sm font-medium text-gray-600">Status</th>
                 </tr>
@@ -213,7 +207,6 @@ export default function AdminClientsPage() {
                     className="hover:bg-gray-50 cursor-pointer transition-colors border-b last:border-0"
                   >
                     <td className="px-4 py-3">{c.name || "—"}</td>
-                    <td className="px-4 py-3">{c.email || "—"}</td>
                     <td className="px-4 py-3">{c.phone || "—"}</td>
                     <td className="px-4 py-3">
                       <span
