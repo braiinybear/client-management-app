@@ -36,7 +36,7 @@ export default function AdminClientsPage() {
     fetchClients();
   }, []);
 
-  // Search filter (without email)
+  // Search filter
   useEffect(() => {
     if (!search.trim()) {
       setFilteredClients(clients);
@@ -71,7 +71,7 @@ export default function AdminClientsPage() {
   };
 
   const downloadCSV = () => {
-    const headers = ["Name", "Phone", "Status"];  // Removed Email
+    const headers = ["Name", "Phone", "Status"];
     const rows = filteredClients.map((c) => [
       c.name || "",
       c.phone || "",
@@ -102,14 +102,17 @@ export default function AdminClientsPage() {
 
   const MAX_VISIBLE_PAGES = 5;
 
+  // Returns an array of page numbers and ellipsis placeholders
   const getPageNumbers = () => {
     const pages: (number | string)[] = [];
 
     if (totalPages <= MAX_VISIBLE_PAGES) {
+      // Show all pages
       for (let i = 1; i <= totalPages; i++) {
         pages.push(i);
       }
     } else {
+      // Always show first page
       pages.push(1);
 
       const leftSiblingIndex = Math.max(currentPage - 1, 2);
@@ -127,6 +130,7 @@ export default function AdminClientsPage() {
         pages.push("right-ellipsis");
       }
 
+      // Always show last page
       pages.push(totalPages);
     }
 

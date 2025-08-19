@@ -59,7 +59,7 @@ export default async function ClientPage({ params }: Props) {
   });
 
   if (!client) notFound();
-
+  
 const status = client?.status || '';
 const statusDisplay = status.charAt(0).toUpperCase() + status.slice(1).toLowerCase();
 
@@ -168,7 +168,7 @@ const statusDisplay = status.charAt(0).toUpperCase() + status.slice(1).toLowerCa
             href={`/admin/employees/${client.user.id}`}
             className="text-blue-600 hover:underline"
           >
-            {client.user.name} 
+            {client.user.name}
           </Link>
         </p>
       </section>
