@@ -62,7 +62,7 @@ const clientRaw = await prisma.client.findFirst({
 });
 
   if (!clientRaw) notFound();
-  // @ts-expect-error
+  // @ts-expect-error Fixing unexpected null in type from Prisma client
   const client: Client = {
     ...clientRaw,
     createdAt: clientRaw.createdAt.toISOString(),
