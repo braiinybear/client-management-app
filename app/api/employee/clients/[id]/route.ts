@@ -8,7 +8,6 @@ const validStatuses = ["HOT", "FOLLOWUP", "COLD", "PROSPECT", "SUCCESS"] as cons
 
 const UpdateClientSchema = z.object({
   name: z.string().min(1).optional(),
-  email: z.string().email().optional(),
   phone: z.string().min(1).optional(),
   status: z.enum(validStatuses).optional(),
   course: z.string().optional(),
