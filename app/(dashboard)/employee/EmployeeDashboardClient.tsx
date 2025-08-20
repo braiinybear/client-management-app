@@ -3,6 +3,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
+import { useEffect, useState } from "react";
 
 type Client = {
   id: string;
@@ -28,6 +29,8 @@ export default function EmployeeDashboardClient({
   recentClients = [],
   statusCounts = [],
 }: EmployeeDashboardClientProps) {
+  const [recentClientsState,setRecentClientsState] = useState<Client[]>(recentClients);
+  const [search,setSearch] = useState<String>("");
   const hotLeads =
     statusCounts.find((s) => s.status.toUpperCase() === "HOT")?.count || 0;
   const followUps =
@@ -50,6 +53,25 @@ export default function EmployeeDashboardClient({
         return "bg-gray-100 text-gray-800";
     }
   };
+
+ useEffect(() => {
+  if (!search.trim()) {
+    setRecentClientsState(recentClients);
+    return;
+  }
+
+  const lower = search.toLowerCase();
+  const filtered = recentClients.filter((c) =>
+    [c.name ?? "", c.phone ?? "", c.status ?? ""].some((field) =>
+      field.toLowerCase().includes(lower)
+    )
+  );
+
+  setRecentClientsState(filtered);
+}, [search, recentClients]);
+
+
+
 
   return (
     <div className="space-y-6">
@@ -103,12 +125,18 @@ export default function EmployeeDashboardClient({
 
       {/* Recent Clients */}
       <div>
-        <h2 className="text-lg font-semibold mb-2">
+<div className="flex items-center justify-between">
+          <h2 className="text-lg font-semibold mb-2">
           Recent Clients (Last 7 Days)
         </h2>
+
+        <div className="input-container ">
+          <input onChange={(e)=>{setSearch(e.target.value)}} type="text" className="p-4  border-1 w-[15rem] h-[3rem]" placeholder="Search Client 🔍"/>
+        </div>
+</div>
         <div className="bg-white rounded-md shadow max-h-[50vh] overflow-y-auto">
-          {recentClients.length > 0 ? (
-            recentClients.map((client) => (
+          {recentClientsState.length > 0 ? (
+            recentClientsState.map((client) => (
               <div
                 key={client.id}
                 className="flex flex-col sm:flex-row sm:justify-between sm:items-center p-4 border-b last:border-0 gap-2 hover:bg-blue-50"

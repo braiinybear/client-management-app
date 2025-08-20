@@ -3,6 +3,8 @@ import { notFound } from "next/navigation";
 import prisma from "@/lib/prisma";
 import PerformanceChart from "./PerformanceChart";
 import { Status } from "@prisma/client";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Card } from "@/components/ui/card";
 
 type Client = {
   id: string;
@@ -37,10 +39,14 @@ export default async function EmployeePage({ params }: Props) {
       role: true,
       clerkId: true,
       assignedClients: {
+        // where:{status:{
+        //   in:["HOT","FOLLOWUP","SUCCESS"]
+        // }},
         select: {
           id: true,
           name: true,
           status: true,
+          phone: true,
         },
         orderBy: {
           name: "asc",
@@ -90,7 +96,7 @@ export default async function EmployeePage({ params }: Props) {
       <h1 className="text-4xl font-bold text-gray-900">Employee Details</h1>
 
       {/* Employee Info */}
-      <section className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-white p-6 rounded-lg shadow">
+      <Card className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-white p-6 rounded-lg shadow">
         <div className="space-y-3">
           <h2 className="text-xl font-semibold text-gray-800">Basic Information</h2>
           <p>
@@ -122,55 +128,62 @@ export default async function EmployeePage({ params }: Props) {
             </p>
           )}
         </div>
-      </section>
+      </Card>
 
       {/* Assigned Clients Table */}
-      <section>
-        <h2 className="text-2xl font-semibold text-gray-800 mb-4">Assigned Clients</h2>
+            <Card className="p-4">
+        <h2 className="text-2xl font-semibold text-gray-800 mb-4 text-center">Assigned Clients</h2>
         {employee.assignedClients.length ? (
-          <div className="overflow-x-auto bg-white rounded-lg shadow">
+          <div className="overflow-x-auto bg-white rounded-lg ">
+          <ScrollArea className="h-[50vh]">
             <table className="min-w-full text-sm text-left text-gray-700">
               <thead className="bg-gray-100 text-xs uppercase text-gray-600">
                 <tr>
                   <th className="px-6 py-3">Client Name</th>
                   <th className="px-6 py-3">Status</th>
+                  <th className="px-6 py-3">Phone No.</th>
                 </tr>
               </thead>
-              <tbody>
-                {employee.assignedClients.map((client) => (
+                           <tbody>
+                {employee.assignedClients.map((client) => {
+                  if(["HOT","FOLLOWUP","SUCCESS"].includes(client.status ?? "PROSPECT"))
+                  return (
                   <tr
                     key={client.id}
                     className="border-t hover:bg-gray-50 transition-colors"
                   >
-                    <td className="px-6 py-4 font-medium text-gray-900">{client.name}</td>
+                    <td className="px-6 py-4 font-medium text-gray-900">{client.name ?? "N/A"}</td>
                     <td className="px-6 py-4">
                       <span
                         className={`px-2 py-1 text-xs font-medium rounded ${getStatusBadge(client.status as Status)}`}
                       >
-                        {client.status?.toLowerCase()}
+                        {client.status?.toLowerCase() ?? "N/A"}
                       </span>
                     </td>
+                    <td className="px-6 py-4 font-medium text-gray-900">{client.phone ?? "N/A"}</td>
                   </tr>
-                ))}
+                )
+                })}
               </tbody>
             </table>
+          </ScrollArea>
           </div>
         ) : (
           <p className="text-gray-500">No clients assigned.</p>
         )}
-      </section>
+      </Card>
 
       {/* Performance Chart */}
-      <section>
-        <h2 className="text-2xl font-semibold text-gray-800 mb-4">Performance Metrics</h2>
+      <Card className="shadow-lg">
+        <h2 className="text-2xl text-center font-semibold text-gray-800 mb-4">Performance Metrics</h2>
         {performanceData.length ? (
-          <div className="bg-white p-6 rounded-lg shadow">
+          <div className="bg-white p-6 rounded-lg ">
             <PerformanceChart data={performanceData} />
           </div>
         ) : (
           <p className="text-gray-500">No performance data available.</p>
         )}
-      </section>
+      </Card>
     </div>
   );
 }

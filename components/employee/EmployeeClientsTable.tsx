@@ -3,7 +3,6 @@
 import React, { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { Button } from "../ui/button";
 import { toast } from "sonner";
 import { DeleteDialog } from "../DeleteDialog";
 
@@ -77,7 +76,7 @@ export default function EmployeeClientsTable({ clients: initialClients }: { clie
 
   const downloadCSV = () => {
     const headers = ["Name", "Phone", "Status"];
-    const rows = filteredClients.map((c) => [c.name || "", c.phone || "", c.status || ""]);
+    const rows = filteredClients.map((c) => [c.name || "N/A", c.phone || "N/A", c.status || "N/A"]);
     const csvContent = [headers, ...rows]
       .map((row) => row.map((field) => `"${String(field).replace(/"/g, '""')}"`).join(","))
       .join("\n");
@@ -136,8 +135,8 @@ export default function EmployeeClientsTable({ clients: initialClients }: { clie
                     onClick={() => router.push(`/employee/clients/${c.id}`)}
                     className="hover:bg-gray-50 cursor-pointer transition-colors border-b last:border-0"
                   >
-                    <td className="px-4 py-3">{c.name || "—"}</td>
-                    <td className="px-4 py-3">{c.phone || "—"}</td>
+                    <td className="px-4 py-3">{c.name || "N/A"}</td>
+                    <td className="px-4 py-3">{c.phone || "N/A"}</td>
                     <td className="px-4 py-3">
                       <span className={cn("px-2 py-1 rounded-full text-xs font-medium", getStatusColor(c.status))}>
                         {c.status || "Unknown"}

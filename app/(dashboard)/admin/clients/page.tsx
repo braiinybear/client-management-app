@@ -210,8 +210,8 @@ export default function AdminClientsPage() {
                     key={idx}
                     className="hover:bg-gray-50 cursor-pointer transition-colors border-b last:border-0"
                   >
-                    <td className="px-4 py-3">{c.name || "—"}</td>
-                    <td className="px-4 py-3">{c.phone || "—"}</td>
+                    <td className="px-4 py-3">{c.name || "N/A"}</td>
+                    <td className="px-4 py-3">{c.phone || "N/A"}</td>
                     <td className="px-4 py-3">
                       <span
                         className={cn(
