@@ -30,7 +30,7 @@ export default function EmployeeDashboardClient({
   statusCounts = [],
 }: EmployeeDashboardClientProps) {
   const [recentClientsState,setRecentClientsState] = useState<Client[]>(recentClients);
-  const [search,setSearch] = useState<String>("");
+  const [search,setSearch] = useState<string>("");
   const hotLeads =
     statusCounts.find((s) => s.status.toUpperCase() === "HOT")?.count || 0;
   const followUps =
