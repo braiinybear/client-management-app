@@ -54,6 +54,7 @@ export default async function AdminDashboardPage() {
     assignedClients: emp.assignedClients.map((c) => ({
       ...c,
       createdAt: c.createdAt.toISOString(),
+      status: c.status ?? "UNKNOWN", // ensure it's a string
       feePaid: c.totalFeePaid ?? 0,
       totalFee: c.totalFee ?? 0,
     })),
@@ -61,7 +62,7 @@ export default async function AdminDashboardPage() {
 
   // transform statusCounts into simple array { status, count }
   const statusCounts = statusCountsRaw.map((s) => ({
-    status: s.status,
+    status: s.status ?? "UNKNOWN", // Convert null to string,
     count: s._count._all,
   }));
 
