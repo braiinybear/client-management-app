@@ -49,22 +49,22 @@ export default function AdminDashboardClient({
   statusCounts,
   employees,
 }: Props) {
-  const [search, setSearch] = useState<string>("");
+  const [search, setSearch] = useState("");
   const [fromDate, setFromDate] = useState<string | null>(null);
   const [toDate, setToDate] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<"revenue" | "conversion" | "name">("revenue");
   const [sortDir, setSortDir] = useState<"desc" | "asc">("desc");
 
-  // Memoize date range checker
+  // Memoized date range filter
   const withinRange = useCallback(
     (iso: string) => {
       const d = new Date(iso);
       if (fromDate) {
-        const f = new Date(fromDate + "T00:00:00");
+        const f = new Date(`${fromDate}T00:00:00`);
         if (d < f) return false;
       }
       if (toDate) {
-        const t = new Date(toDate + "T23:59:59");
+        const t = new Date(`${toDate}T23:59:59`);
         if (d > t) return false;
       }
       return true;
@@ -72,17 +72,13 @@ export default function AdminDashboardClient({
     [fromDate, toDate]
   );
 
-  // Compute employee metrics
   const computed: EmployeeMetric[] = useMemo(() => {
-    const list: EmployeeMetric[] = employees.map((emp) => {
+    const list = employees.map((emp) => {
       const filtered = emp.assignedClients.filter((c) => withinRange(c.createdAt));
       const totalClients = filtered.length;
       const convertedClients = filtered.filter((c) => c.status === "SUCCESS").length;
-      const revenue = filtered.reduce((sum, c) => sum + (c.feePaid ?? 0), 0);
-      const outstanding = filtered.reduce(
-        (sum, c) => sum + ((c.totalFee ?? 0) - (c.feePaid ?? 0)),
-        0
-      );
+      const revenue = filtered.reduce((sum, c) => sum + c.feePaid, 0);
+      const outstanding = filtered.reduce((sum, c) => sum + (c.totalFee - c.feePaid), 0);
       const followups = filtered.filter((c) => c.status === "FOLLOWUP").length;
       const conversionRate = totalClients ? (convertedClients / totalClients) * 100 : 0;
 
@@ -117,7 +113,6 @@ export default function AdminDashboardClient({
     return sorted;
   }, [employees, search, sortBy, sortDir, withinRange]);
 
-  // Table columns
   const columns: ColumnDef<EmployeeMetric>[] = [
     {
       accessorKey: "name",
@@ -125,7 +120,9 @@ export default function AdminDashboardClient({
       cell: ({ row }) => (
         <div>
           <div className="font-medium">{row.original.name}</div>
-          <div className="text-xs text-muted-foreground break-words">{row.original.email}</div>
+          <div className="text-xs text-muted-foreground break-words">
+            {row.original.email}
+          </div>
         </div>
       ),
     },
@@ -149,7 +146,6 @@ export default function AdminDashboardClient({
     { accessorKey: "followups", header: "Follow-ups" },
   ];
 
-  // Export CSV
   const exportCSV = () => {
     const headers = [
       "Name",
@@ -161,19 +157,22 @@ export default function AdminDashboardClient({
       "Outstanding",
       "Follow-ups",
     ];
+
     const rows = computed.map((r) => [
       r.name,
       r.email,
-      String(r.totalClients),
-      String(r.convertedClients),
+      r.totalClients,
+      r.convertedClients,
       r.conversionRate.toFixed(1),
-      String(r.revenue),
-      String(r.outstanding),
-      String(r.followups),
+      r.revenue,
+      r.outstanding,
+      r.followups,
     ]);
 
     const csvContent = [headers, ...rows]
-      .map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(","))
+      .map((row) =>
+        row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(",")
+      )
       .join("\n");
 
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
@@ -195,7 +194,7 @@ export default function AdminDashboardClient({
         </p>
       </div>
 
-      {/* Stat Cards + Pie */}
+      {/* Stat Cards + Pie Chart */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <Link href="/admin/clients" className="block hover:opacity-90 transition">
           <StatCard title="Total Clients" value={totalClients.toLocaleString()} />
@@ -219,7 +218,7 @@ export default function AdminDashboardClient({
                     label
                   >
                     {statusCounts.map((_, i) => (
-                      <Cell key={`c-${i}`} fill={COLORS[i % COLORS.length]} />
+                      <Cell key={`cell-${i}`} fill={COLORS[i % COLORS.length]} />
                     ))}
                   </Pie>
                   <Tooltip />
@@ -232,7 +231,7 @@ export default function AdminDashboardClient({
         </div>
       </div>
 
-      {/* Filters and Controls */}
+      {/* Filters */}
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex flex-col sm:flex-row sm:items-center gap-3">
           <input

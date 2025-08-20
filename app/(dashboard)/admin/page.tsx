@@ -1,22 +1,7 @@
-// app/admin/page.tsx
+// app/(dashboard)/admin/page.tsx
 import React from "react";
 import prisma from "@/lib/prisma";
 import AdminDashboardClient from "./AdminDashboardClient";
-
-type RawClient = {
-  id: string;
-  status: string;
-  feePaid: number | null;
-  totalFee: number | null;
-  createdAt: Date;
-};
-
-// type RawEmployee = {
-//   id: string;
-//   name: string;
-//   email: string;
-//   assignedClients: RawClient[];
-// };
 
 export default async function AdminDashboardPage() {
   // Fetch base stats + employees with assignedClients
@@ -46,23 +31,23 @@ export default async function AdminDashboardPage() {
     }),
   ]);
 
-  // serialize non-serializable values (Date -> ISO)
+  // Serialize employees
   const employees = employeesRaw.map((emp) => ({
     id: emp.id,
-    name: emp.name,
+    name: emp.name ?? "Unnamed", // Fix: name might be null
     email: emp.email,
     assignedClients: emp.assignedClients.map((c) => ({
-      ...c,
+      id: c.id,
+      status: c.status ?? "UNKNOWN", // Fix: status might be null
       createdAt: c.createdAt.toISOString(),
-      status: c.status ?? "UNKNOWN", // ensure it's a string
       feePaid: c.totalFeePaid ?? 0,
       totalFee: c.totalFee ?? 0,
     })),
   }));
 
-  // transform statusCounts into simple array { status, count }
+  // Transform statusCounts
   const statusCounts = statusCountsRaw.map((s) => ({
-    status: s.status ?? "UNKNOWN", // Convert null to string,
+    status: s.status ?? "UNKNOWN", // Fix: status might be null
     count: s._count._all,
   }));
 
