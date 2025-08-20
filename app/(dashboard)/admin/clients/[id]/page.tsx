@@ -6,13 +6,13 @@ import { Archive, FileText, UserCircle } from "lucide-react";
 import { v4 as uuidv4 } from "uuid";
 
 type Props = {
-  params: { id: string };
+   params: Promise<{ id: string }>;
 };
 
 export const revalidate = 0;
 
 export default async function ClientPage({ params }: Props) {
-  const { id } = params;
+  const { id } = await params;
 
   const client = await prisma.client.findUnique({
     where: { id },
