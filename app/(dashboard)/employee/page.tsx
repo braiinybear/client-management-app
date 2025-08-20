@@ -46,7 +46,7 @@ export default async function EmployeeDashboardPage() {
   ]);
 
   const statusCounts = statusCountsRaw.map((s) => ({
-    status: s.status,
+    status: s.status ?? "Unkown",
     count: s._count._all,
   }));
 
@@ -55,6 +55,8 @@ export default async function EmployeeDashboardPage() {
       totalClients={assignedClients.length} // ✅ Only assigned clients
       recentClients={recentClientsRaw.map((c) => ({
         ...c,
+        name:c.name ?? "no name",
+        status: c.status ?? "Unkown",
         createdAt: c.createdAt.toISOString(),
       }))} // ✅ Only assigned & last 7 days
       statusCounts={statusCounts}
