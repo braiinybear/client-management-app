@@ -29,8 +29,9 @@ export default function EmployeeDashboardClient({
   recentClients = [],
   statusCounts = [],
 }: EmployeeDashboardClientProps) {
-  const [recentClientsState,setRecentClientsState] = useState<Client[]>(recentClients);
-  const [search,setSearch] = useState<string>("");
+  const [recentClientsState, setRecentClientsState] = useState<Client[]>(recentClients);
+  const [search, setSearch] = useState<string>("");
+
   const hotLeads =
     statusCounts.find((s) => s.status.toUpperCase() === "HOT")?.count || 0;
   const followUps =
@@ -54,24 +55,21 @@ export default function EmployeeDashboardClient({
     }
   };
 
- useEffect(() => {
-  if (!search.trim()) {
-    setRecentClientsState(recentClients);
-    return;
-  }
+  useEffect(() => {
+    if (!search.trim()) {
+      setRecentClientsState(recentClients);
+      return;
+    }
 
-  const lower = search.toLowerCase();
-  const filtered = recentClients.filter((c) =>
-    [c.name ?? "", c.phone ?? "", c.status ?? ""].some((field) =>
-      field.toLowerCase().includes(lower)
-    )
-  );
+    const lower = search.toLowerCase();
+    const filtered = recentClients.filter((c) =>
+      [c.name ?? "", c.phone ?? "", c.status ?? ""].some((field) =>
+        field.toLowerCase().includes(lower)
+      )
+    );
 
-  setRecentClientsState(filtered);
-}, [search, recentClients]);
-
-
-
+    setRecentClientsState(filtered);
+  }, [search, recentClients]);
 
   return (
     <div className="space-y-6">
@@ -125,15 +123,21 @@ export default function EmployeeDashboardClient({
 
       {/* Recent Clients */}
       <div>
-<div className="flex items-center justify-between">
+        <div className="flex items-center justify-between">
           <h2 className="text-lg font-semibold mb-2">
-          Recent Clients (Last 7 Days)
-        </h2>
+            Recent Clients (Last 7 Days)
+          </h2>
 
-        <div className="input-container ">
-          <input onChange={(e)=>{setSearch(e.target.value)}} type="text" className="p-4  border-1 w-[15rem] h-[3rem]" placeholder="Search Client 🔍"/>
+          <div className="input-container">
+            <input
+              onChange={(e) => setSearch(e.target.value)}
+              type="text"
+              className="p-4 border w-[15rem] h-[3rem] rounded"
+              placeholder="Search Client 🔍"
+            />
+          </div>
         </div>
-</div>
+
         <div className="bg-white rounded-md shadow max-h-[50vh] overflow-y-auto">
           {recentClientsState.length > 0 ? (
             recentClientsState.map((client) => (
