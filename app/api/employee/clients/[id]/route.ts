@@ -5,12 +5,16 @@ import { auth } from "@clerk/nextjs/server";
 import { z } from "zod";
 
 const validStatuses = ["HOT", "FOLLOWUP", "COLD", "PROSPECT", "SUCCESS"] as const;
+const validCallResponses = ["HANGUP", "NOTINTERESTED", "WRONG", "NOTRESPONDED"] as const;
+
 
 const UpdateClientSchema = z.object({
   name: z.string().min(1).optional(),
   phone: z.string().min(1).optional(),
   status: z.enum(validStatuses).optional(),
+  callResponse: z.enum(validCallResponses).optional(),
   course: z.string().optional(),
+  notes: z.string().optional(),
   hostelFee: z.number().nullable().optional(),
   totalFee: z.number().nullable().optional(),
   courseFee: z.number().nullable().optional(),
@@ -18,6 +22,7 @@ const UpdateClientSchema = z.object({
   hostelFeePaid: z.number().nullable().optional(),
   totalFeePaid: z.number().nullable().optional(),
 });
+
 
 export async function PUT(
   req: NextRequest,

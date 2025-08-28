@@ -1,7 +1,8 @@
 "use client";
 import React, { useState, useRef, useEffect } from "react";
-import { Status } from "@prisma/client";
+import { CallResponse, Status } from "@prisma/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -22,6 +23,7 @@ import {
   FileText,
   IndianRupee,
   Info,
+  StickyNote, 
 } from "lucide-react";
 import { DeleteDialog } from "../DeleteDialog";
 import { toast } from "sonner";
@@ -48,6 +50,8 @@ interface Client {
   phone?: string;
   status: Status;
   course?: string | null;
+  callResponse?:CallResponse;
+  notes?:string;
   hostelFee?: number | null;
   totalFee?: number | null;
   courseFee?: number | null;
@@ -71,6 +75,8 @@ interface ClientFormData {
   name?: string;
   phone?: string;
   status: Status;
+  callResponse?:CallResponse;
+  notes?:string;
   course: string;
   hostelFee: string;
   courseFee: string;
@@ -82,16 +88,19 @@ interface ClientFormData {
 
 export default function ClientProfileClient({
   client,
-  employeeId,
 }: ClientProfileClientProps) {
   const [detailsEditable, setDetailsEditable] = useState(false);
   const [feesEditable, setFeesEditable] = useState(false);
+  const [notesEditable, setNotesEditable] = useState(false);
+  const [downloadFormat, setDownloadFormat] = useState<"json" | "csv" | "txt" | "">("");
 
   const [formData, setFormData] = useState<ClientFormData>({
     name: client.name ?? "",
     phone: client.phone,
     status: client.status,
     course: client.course ?? "",
+    callResponse: client.callResponse ?? "NOTRESPONDED",
+    notes: client.notes ?? "",
     hostelFee: client.hostelFee?.toString() ?? "",
     courseFee: client.courseFee?.toString() ?? "",
     totalFee: client.totalFee?.toString() ?? "0.00",
@@ -145,73 +154,151 @@ const router = useRouter();
     setFormData(prev => ({ ...prev, [name]: value } as Pick<ClientFormData, keyof ClientFormData>));
   };
 
-  const handleCancelEdit = (section: "details" | "fees") => {
-    setError(null);
-    setSuccess(null);
-    if (section === "details") {
-      setFormData((prev) => ({
-        ...prev,
-        name: client.name,
-        phone: client.phone,
-        status: client.status,
-        course: client.course ?? "",
-      }));
-      setDetailsEditable(false);
-    } else {
-      setFormData((prev) => ({
-        ...prev,
-        hostelFee: client.hostelFee?.toString() ?? "",
-        courseFee: client.courseFee?.toString() ?? "",
-        hostelFeePaid: client.hostelFeePaid?.toString() ?? "",
-        courseFeePaid: client.courseFeePaid?.toString() ?? "",
-        totalFee: client.totalFee?.toString() ?? "0.00",
-        totalFeePaid: client.totalFeePaid?.toString() ?? "0.00",
-      }));
-      setFeesEditable(false);
-    }
+
+  // download client data in different formats
+
+  const downloadClientData = (format: "json" | "csv" | "txt") => {
+  const data = {
+    ...client,
+    documents: client.documents.map(doc => ({ name: doc.name, url: doc.url })),
+    assignedEmployee: client.assignedEmployee?.name ?? null,
   };
 
-  const handleSaveSection = async (section: "details" | "fees") => {
-    setLoading(true);
-    setError(null);
-    setSuccess(null);
-    try {
-      const payload =
-        section === "details"
-          ? {
-              name: formData.name,
-              phone: formData.phone,
-              status: formData.status,
-              course: formData.course,
-            }
-          : {
-              hostelFee: Number(formData.hostelFee) || 0,
-              courseFee: Number(formData.courseFee) || 0,
-              hostelFeePaid: Number(formData.hostelFeePaid) || 0,
-              courseFeePaid: Number(formData.courseFeePaid) || 0,
-              totalFee: Number(formData.totalFee) || 0,
-              totalFeePaid: Number(formData.totalFeePaid) || 0,
-            };
+  let fileContent = "";
+  let mimeType = "";
+  let fileExtension = "";
 
-      const res = await fetch(`/api/employee/clients/${client.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
+  switch (format) {
+    case "json":
+      fileContent = JSON.stringify(data, null, 2);
+      mimeType = "application/json";
+      fileExtension = "json";
+      break;
 
-      if (!res.ok) {
-        const data: { message?: string } = await res.json();
-        throw new Error(data.message || "Update failed");
-      }
+    case "csv":
+      const csvRows = [
+        ["Field", "Value"],
+        ...Object.entries(data).map(([key, value]) => {
+          const val =
+            typeof value === "object"
+              ? JSON.stringify(value)
+              : value ?? "";
+          return [key, val];
+        }),
+      ];
+      fileContent = csvRows.map(row => row.join(",")).join("\n");
+      mimeType = "text/csv";
+      fileExtension = "csv";
+      break;
 
-      setSuccess("Saved successfully!");
-      section === "details" ? setDetailsEditable(false) : setFeesEditable(false);
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
+    case "txt":
+      fileContent = Object.entries(data)
+        .map(([key, value]) => `${key}: ${typeof value === "object" ? JSON.stringify(value) : value}`)
+        .join("\n");
+      mimeType = "text/plain";
+      fileExtension = "txt";
+      break;
+
+    default:
+      console.error("Unsupported format");
+      return;
+  }
+
+  const blob = new Blob([fileContent], { type: mimeType });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `client_${client.id}.${fileExtension}`;
+  a.click();
+  URL.revokeObjectURL(url);
+};
+
+
+const handleCancelEdit = (section: "details" | "fees" | "notes") => {
+  setError(null);
+  setSuccess(null);
+
+  if (section === "details") {
+    setFormData((prev) => ({
+      ...prev,
+      name: client.name,
+      phone: client.phone,
+      status: client.status,
+      callResponse: client.callResponse ?? "NOTRESPONDED",
+      course: client.course ?? "",
+    }));
+    setDetailsEditable(false);
+  } else if (section === "fees") {
+    setFormData((prev) => ({
+      ...prev,
+      hostelFee: client.hostelFee?.toString() ?? "",
+      courseFee: client.courseFee?.toString() ?? "",
+      hostelFeePaid: client.hostelFeePaid?.toString() ?? "",
+      courseFeePaid: client.courseFeePaid?.toString() ?? "",
+      totalFee: client.totalFee?.toString() ?? "0.00",
+      totalFeePaid: client.totalFeePaid?.toString() ?? "0.00",
+    }));
+    setFeesEditable(false);
+  } else if (section === "notes") {
+    setFormData((prev) => ({
+      ...prev,
+      notes: client.notes ?? ""
+    }));
+    setNotesEditable(false);
+  }
+};
+
+
+const handleSaveSection = async (section: "details" | "fees" | "notes") => {
+  setLoading(true);
+  setError(null);
+  setSuccess(null);
+
+  try {
+    const payload =
+      section === "details"
+        ? {
+            name: formData.name,
+            phone: formData.phone,
+            status: formData.status,
+            callResponse: formData.callResponse,
+            course: formData.course,
+          }
+        : section === "notes"
+        ? {
+            notes: formData.notes 
+          }
+        : {
+            hostelFee: Number(formData.hostelFee) || 0,
+            courseFee: Number(formData.courseFee) || 0,
+            hostelFeePaid: Number(formData.hostelFeePaid) || 0,
+            courseFeePaid: Number(formData.courseFeePaid) || 0,
+            totalFee: Number(formData.totalFee) || 0,
+            totalFeePaid: Number(formData.totalFeePaid) || 0,
+          };
+
+    const res = await fetch(`/api/employee/clients/${client.id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+
+    if (!res.ok) {
+      const data: { message?: string } = await res.json();
+      throw new Error(data.message || "Update failed");
     }
-  };
+
+    setSuccess("Saved successfully!");
+    if (section === "details") setDetailsEditable(false);
+    else if (section === "fees") setFeesEditable(false);
+    else if (section === "notes") setNotesEditable(false);
+  } catch (err: any) {
+    setError(err.message);
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   // Document upload
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -302,6 +389,14 @@ const router = useRouter();
       }
     };
 
+      const formatDate = (dateStr: string) => {
+    return new Date(dateStr).toLocaleDateString("en-IN", {
+      year: "numeric",
+      month: "short",
+      day: "numeric"
+    });
+  };
+
   
   return (
     <div className="max-w-4xl mx-auto p-6 space-y-10 font-sans">
@@ -310,15 +405,33 @@ const router = useRouter();
         <h1 className="text-3xl font-extrabold flex items-center gap-2 text-gray-900">
           <User className="w-8 h-8 text-blue-600" /> Client Profile & Edit
         </h1>
-        <Link href="/dashboard/employee/my-clients" passHref>
+        
+        <div className="flex items-center gap-2 mt-4">
+          <Select onValueChange={(value) => setDownloadFormat(value as "json" | "csv" | "txt")}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Download Format" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="json">Download JSON</SelectItem>
+              <SelectItem value="csv">Download CSV</SelectItem>
+              <SelectItem value="txt">Download TXT</SelectItem>
+            </SelectContent>
+          </Select>
+
           <Button
+            onClick={() => {
+              if (downloadFormat) {
+                downloadClientData(downloadFormat); // Your function that handles the download
+              }
+            }}
             variant="outline"
-            className="flex items-center gap-1 hover:bg-blue-100 transition-colors duration-200"
+            disabled={!downloadFormat} // Disable if no format selected
           >
-            <Info className="w-4 h-4" />
-            Back to My Clients
+            <Download className="w-4 h-4 mr-2" />
+            Export
           </Button>
-        </Link>
+        </div>
+
       </div>
 
       {/* Overview */}
@@ -472,7 +585,6 @@ const router = useRouter();
         <CardContent className="space-y-4">
           {[
             { id: "name", label: "Name", type: "text" },
-            { id: "email", label: "Email", type: "email" },
             { id: "phone", label: "Phone", type: "text" },
           ].map(({ id, label, type }) => (
             <div key={id}>
@@ -496,6 +608,36 @@ const router = useRouter();
               )}
             </div>
           ))}
+
+            {/* Call Response */}
+          <div>
+            <label className="block font-medium mb-1" htmlFor="callResponse">
+              Call Response
+            </label>
+            {detailsEditable ? (
+              <Select
+                name="callResponse"
+                value={formData.callResponse}
+                onValueChange={(value) =>
+                  setFormData((prev) => ({ ...prev, callResponse: value as CallResponse }))
+                }
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="HANGUP">Hang Up</SelectItem>
+                  <SelectItem value="NOTINTERESTED">Not Interested</SelectItem>
+                  <SelectItem value="WRONG">Wrong</SelectItem>
+                  <SelectItem value="NOTRESPONDED">Not Responded</SelectItem>
+                </SelectContent>
+              </Select>
+            ) : (
+              <p className="px-3 py-2 bg-gray-100 rounded select-text max-w-full truncate">
+                {formData.callResponse}
+              </p>
+            )}
+          </div>
 
           {/* Status */}
           <div>
@@ -547,6 +689,62 @@ const router = useRouter();
               </p>
             )}
           </div>
+        </CardContent>
+      </Card>
+
+
+          {/* 🔧 NEW: Notes Card */}
+      <Card className="shadow-lg border border-gray-200 hover:shadow-xl transition-shadow duration-300">
+        <CardHeader className="flex justify-between items-center">
+          <div className="flex items-center gap-2">
+            <StickyNote className="w-6 h-6 text-purple-600" />
+            <CardTitle>Client Notes</CardTitle>
+          </div>
+          {!notesEditable ? (
+            <Button size="sm" onClick={() => setNotesEditable(true)}>
+              <Edit2 className="w-4 h-4 mr-1" />
+              Edit
+            </Button>
+          ) : (
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => handleCancelEdit("notes")}
+                disabled={loading}
+              >
+                <XCircle className="w-4 h-4 mr-1" /> Cancel
+              </Button>
+              <Button
+                size="sm"
+                onClick={() => handleSaveSection("notes")}
+                disabled={loading}
+              >
+                <Save className="w-4 h-4 mr-1" /> Save
+              </Button>
+            </div>
+          )}
+        </CardHeader>
+        <CardContent>
+          {notesEditable ? (
+            <textarea
+              name="notes"
+              value={formData.notes}
+              onChange={(e) =>
+                setFormData((prev) => ({
+                  ...prev,
+                  notes: e.target.value
+                }))
+              }
+              rows={5}
+              className="w-full border rounded-md p-3"
+              placeholder="Enter notes here..."
+            />
+          ) : (
+            <p className="px-3 py-2 bg-gray-100 rounded select-text whitespace-pre-wrap">
+              {formData.notes || "No notes available."}
+            </p>
+          )}
         </CardContent>
       </Card>
 
@@ -687,6 +885,12 @@ const router = useRouter();
               </div>
         </CardContent>
       </Card>
+
+            {/* 🔧 NEW: Dates */}
+      <div className="text-sm text-gray-600 text-center">
+        Created At: <strong>{formatDate(client.createdAt)}</strong> | Last
+        Updated: <strong>{formatDate(client.updatedAt)}</strong>
+      </div>
 
       {/* Show success or error messages */}
       {(error || success) && (

@@ -30,6 +30,10 @@ export default function EmployeeClientsTable({ clients: initialClients }: { clie
     );
   }, [search, clients]);
 
+  useEffect(() => {
+    setCurrentPage(1); // Reset to page 1 when search changes
+  }, [search]);
+
   const totalPages = Math.ceil(filteredClients.length / itemsPerPage);
   const paginatedClients = filteredClients.slice(
     (currentPage - 1) * itemsPerPage,
@@ -61,12 +65,13 @@ export default function EmployeeClientsTable({ clients: initialClients }: { clie
 
       toast.success("Client deleted");
 
-      // Update local state to remove deleted client
-      setClients((prev) => prev.filter((c) => c.id !== id));
+      const updatedClients = clients.filter((c) => c.id !== id);
+      setClients(updatedClients);
 
-      // Adjust pagination if current page is now empty
-      const newTotalPages = Math.ceil((filteredClients.length - 1) / itemsPerPage);
-      if (currentPage > newTotalPages) setCurrentPage(newTotalPages || 1);
+      const newTotalPages = Math.ceil(updatedClients.length / itemsPerPage);
+      if (currentPage > newTotalPages) {
+        setCurrentPage(newTotalPages || 1);
+      }
 
     } catch (error) {
       console.error(error);
@@ -88,6 +93,33 @@ export default function EmployeeClientsTable({ clients: initialClients }: { clie
     a.download = "clients.csv";
     a.click();
     URL.revokeObjectURL(url);
+  };
+
+  const MAX_VISIBLE_PAGES = 5;
+
+  const getPageNumbers = (): (number | string)[] => {
+    const pages: (number | string)[] = [];
+
+    if (totalPages <= MAX_VISIBLE_PAGES) {
+      for (let i = 1; i <= totalPages; i++) pages.push(i);
+    } else {
+      pages.push(1);
+
+      const left = Math.max(currentPage - 1, 2);
+      const right = Math.min(currentPage + 1, totalPages - 1);
+
+      if (left > 2) pages.push("left-ellipsis");
+
+      for (let i = left; i <= right; i++) {
+        pages.push(i);
+      }
+
+      if (right < totalPages - 1) pages.push("right-ellipsis");
+
+      pages.push(totalPages);
+    }
+
+    return pages;
   };
 
   return (
@@ -142,9 +174,10 @@ export default function EmployeeClientsTable({ clients: initialClients }: { clie
                         {c.status || "Unknown"}
                       </span>
                     </td>
-                    <td   onClick={(e) => {
-                          e.stopPropagation(); // Prevent row click
-                        }} className="px-4 py-3">
+                    <td
+                      onClick={(e) => e.stopPropagation()}
+                      className="px-4 py-3"
+                    >
                       <DeleteDialog onConfirm={() => handleDelete(c.id)} />
                     </td>
                   </tr>
@@ -163,17 +196,27 @@ export default function EmployeeClientsTable({ clients: initialClients }: { clie
               Prev
             </button>
 
-            {Array.from({ length: totalPages }, (_, i) => (
-              <button
-                key={i}
-                onClick={() => setCurrentPage(i + 1)}
-                className={`px-3 py-1 rounded border text-sm ${
-                  currentPage === i + 1 ? "bg-blue-600 text-white" : "bg-white"
-                }`}
-              >
-                {i + 1}
-              </button>
-            ))}
+            {getPageNumbers().map((page, idx) => {
+              if (page === "left-ellipsis" || page === "right-ellipsis") {
+                return (
+                  <span key={page + idx} className="px-2 select-none">
+                    &hellip;
+                  </span>
+                );
+              }
+
+              return (
+                <button
+                  key={page}
+                  onClick={() => setCurrentPage(Number(page))}
+                  className={`px-3 py-1 rounded border text-sm ${
+                    currentPage === page ? "bg-blue-600 text-white" : "bg-white"
+                  }`}
+                >
+                  {page}
+                </button>
+              );
+            })}
 
             <button
               onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
