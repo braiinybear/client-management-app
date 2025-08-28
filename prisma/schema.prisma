@@ -78,4 +78,5 @@ enum CallResponse {
   HANGUP
   NOTINTERESTED
   WRONG
+  NOTRESPONDED
 }

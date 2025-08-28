@@ -3,7 +3,7 @@ import { auth } from "@clerk/nextjs/server";
 import { notFound, redirect } from "next/navigation";
 import ClientProfileClient from "@/components/employee/ClientProfileClient";
 
-import type { Status } from "@prisma/client";
+import type { CallResponse, Status } from "@prisma/client";
 
 interface Document {
   id: string;
@@ -21,6 +21,8 @@ interface Client {
   name?: string;
   phone?: string;
   status: Status;
+  callResponse?:CallResponse;
+  notes?:string;
   course?: string | null;
   hostelFee?: number | null;
   totalFee?: number | null;
