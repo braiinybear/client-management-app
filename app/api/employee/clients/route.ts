@@ -60,6 +60,19 @@ export async function POST(req: Request) {
       return NextResponse.json({ message: "Missing required fields" }, { status: 400 });
     }
 
+        // Check if a client with the same phone already exists
+    const existingClient = await prisma.client.findUnique({
+      where: { phone: body.phone },
+    });
+
+    if (existingClient) {
+      return NextResponse.json(
+        { error: "A client with this phone number already exists." },
+        { status: 409 } // 409 Conflict
+      );
+    }
+
+
     // Find the employee (Clerk user linked to app user)
     const me = await prisma.user.findUnique({ where: { clerkId: userId } });
     if (!me) {

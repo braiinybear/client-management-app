@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Status } from "@prisma/client";
+import { CallResponse, Status } from "@prisma/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -32,12 +32,14 @@ export default function NewClientPage() {
     phone: "",
     status: "HOT" as Status,
     course: "",
+    notes : "",
     hostelFee: "",
     courseFee: "",
     totalFee: "0.00",
     courseFeePaid: "",
     hostelFeePaid: "",
     totalFeePaid: "0.00",
+    callResponse: "" as "" | "HANGUP" | "NOTINTERESTED" | "WRONG" | "NOTRESPONDED",
   });
 
   const [creating, setCreating] = useState(false);
@@ -134,6 +136,8 @@ export default function NewClientPage() {
         phone: formData.phone.trim(),
         status: formData.status,
         course: formData.course?.trim() || null,
+        CallResponse: formData.callResponse || null,
+        notes: formData.notes || null,
         hostelFee: formData.hostelFee ? parseFloat(formData.hostelFee) : null,
         courseFee: formData.courseFee ? parseFloat(formData.courseFee) : null,
         totalFee: formData.totalFee ? parseFloat(formData.totalFee) : null,
@@ -195,6 +199,31 @@ export default function NewClientPage() {
               <Input name="phone" value={formData.phone} onChange={handleChange} required />
             </div>
 
+               {/* Call Response */}
+                      <div>
+                        <label className="block font-medium mb-1" htmlFor="callResponse">
+                          Call Response
+                        </label>
+                          <Select
+                            name="callResponse"
+                            value={formData.callResponse}
+                            onValueChange={(value) =>
+                              setFormData((prev) => ({ ...prev, callResponse: value as CallResponse }))
+                            }
+                          >
+                            <SelectTrigger className="w-full">
+                              <SelectValue placeholder="Select status" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="HANGUP">Hang Up</SelectItem>
+                              <SelectItem value="NOTINTERESTED">Not Interested</SelectItem>
+                              <SelectItem value="WRONG">Wrong</SelectItem>
+                              <SelectItem value="NOTRESPONDED">Not Responded</SelectItem>
+                            </SelectContent>
+                          </Select>
+            
+                      </div>
+
             <div>
               <Label>Status</Label>
               <Select value={formData.status} onValueChange={(v) => setFormData((p) => ({ ...p, status: v as Status }))}>
@@ -244,6 +273,23 @@ export default function NewClientPage() {
               <p className="px-3 py-2 bg-gray-100 rounded">{formData.totalFeePaid}</p>
             </div>
 
+                            {/* notes  */}
+            <div className="col-span-2 shadow-lg border border-gray-200 hover:shadow-xl transition-shadow duration-300">
+                    <textarea
+                    name="notes"
+                    value={formData.notes}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        notes: e.target.value
+                      }))
+                    }
+                    rows={5}
+                    className="w-full border rounded-md p-3"
+                    placeholder="Enter notes here..."
+                  />
+            </div>
+
             <div className="md:col-span-2 flex justify-end">
               <Button type="submit" disabled={creating}>
                 {creating ? "Creating..." : "Create Client"}
@@ -252,6 +298,10 @@ export default function NewClientPage() {
           </form>
         </CardContent>
       </Card>
+
+            
+
+      
 
       {/* Documents */}
       <Card className="shadow-lg border border-gray-200 hover:shadow-xl transition-shadow duration-300">
