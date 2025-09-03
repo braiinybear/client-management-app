@@ -17,10 +17,10 @@ import { Label } from "@/components/ui/label";
 import { UploadCloud, Trash2, FileText, User } from "lucide-react";
 
 type DocState = {
-  id: string;         // temp id before creation
+  id: string;
   name: string;
   url: string;
-  saved: boolean;     // false until client is created
+  saved: boolean;
 };
 
 export default function NewClientPage() {
@@ -32,7 +32,7 @@ export default function NewClientPage() {
     phone: "",
     status: "HOT" as Status,
     course: "",
-    notes : "",
+    notes: "",
     hostelFee: "",
     courseFee: "",
     totalFee: "0.00",
@@ -175,9 +175,9 @@ export default function NewClientPage() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto p-6 space-y-8 font-sans">
-      <div className="flex justify-between items-center flex-wrap gap-3">
-        <h1 className="text-3xl font-extrabold flex items-center gap-2 text-gray-900">
+    <div className="max-w-4xl mx-auto p-4 sm:p-6 space-y-8 font-sans">
+      <div className="flex flex-col sm:flex-row justify-between items-center gap-3">
+        <h1 className="text-2xl sm:text-3xl font-extrabold flex items-center gap-2 text-gray-900">
           <User className="w-8 h-8 text-blue-600" /> Create Client
         </h1>
       </div>
@@ -188,46 +188,41 @@ export default function NewClientPage() {
           <CardTitle>Client Details</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <form onSubmit={handleFormSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <form onSubmit={handleFormSubmit} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <div>
               <Label>Name</Label>
-              <Input name="name" value={formData.name} onChange={handleChange} required />
+              <Input name="name" value={formData.name} onChange={handleChange} required className="w-full" />
             </div>
-
             <div>
               <Label>Phone</Label>
-              <Input name="phone" value={formData.phone} onChange={handleChange} required />
+              <Input name="phone" value={formData.phone} onChange={handleChange} required className="w-full" />
             </div>
-
-               {/* Call Response */}
-                      <div>
-                        <label className="block font-medium mb-1" htmlFor="callResponse">
-                          Call Response
-                        </label>
-                          <Select
-                            name="callResponse"
-                            value={formData.callResponse}
-                            onValueChange={(value) =>
-                              setFormData((prev) => ({ ...prev, callResponse: value as CallResponse }))
-                            }
-                          >
-                            <SelectTrigger className="w-full">
-                              <SelectValue placeholder="Select status" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="HANGUP">Hang Up</SelectItem>
-                              <SelectItem value="NOTINTERESTED">Not Interested</SelectItem>
-                              <SelectItem value="WRONG">Wrong</SelectItem>
-                              <SelectItem value="NOTRESPONDED">Not Responded</SelectItem>
-                            </SelectContent>
-                          </Select>
-            
-                      </div>
-
+            <div>
+              <label className="block font-medium mb-1" htmlFor="callResponse">
+                Call Response
+              </label>
+              <Select
+                name="callResponse"
+                value={formData.callResponse}
+                onValueChange={(value) =>
+                  setFormData((prev) => ({ ...prev, callResponse: value as CallResponse }))
+                }
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="HANGUP">Hang Up</SelectItem>
+                  <SelectItem value="NOTINTERESTED">Not Interested</SelectItem>
+                  <SelectItem value="WRONG">Wrong</SelectItem>
+                  <SelectItem value="NOTRESPONDED">Not Responded</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
             <div>
               <Label>Status</Label>
               <Select value={formData.status} onValueChange={(v) => setFormData((p) => ({ ...p, status: v as Status }))}>
-                <SelectTrigger><SelectValue placeholder="Select status" /></SelectTrigger>
+                <SelectTrigger className="w-full"><SelectValue placeholder="Select status" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="HOT">Hot</SelectItem>
                   <SelectItem value="PROSPECT">Prospect</SelectItem>
@@ -237,61 +232,53 @@ export default function NewClientPage() {
                 </SelectContent>
               </Select>
             </div>
-
-            <div className="md:col-span-2">
+            <div className="md:col-span-2 lg:col-span-3">
               <Label>Course</Label>
-              <Input name="course" value={formData.course} onChange={handleChange} />
+              <Input name="course" value={formData.course} onChange={handleChange} className="w-full" />
             </div>
-
             <div>
               <Label>Hostel Fee</Label>
-              <Input name="hostelFee" type="number" step="0.01" value={formData.hostelFee} onChange={handleChange} />
+              <Input name="hostelFee" type="number" step="0.01" value={formData.hostelFee} onChange={handleChange} className="w-full" />
             </div>
-
             <div>
               <Label>Course Fee</Label>
-              <Input name="courseFee" type="number" step="0.01" value={formData.courseFee} onChange={handleChange} />
+              <Input name="courseFee" type="number" step="0.01" value={formData.courseFee} onChange={handleChange} className="w-full" />
             </div>
-
             <div>
               <Label>Total Fee (auto)</Label>
-              <p className="px-3 py-2 bg-gray-100 rounded">{formData.totalFee}</p>
+              <p className="px-3 py-2 bg-gray-100 rounded w-full">{formData.totalFee}</p>
             </div>
-
             <div>
               <Label>Course Fee Paid</Label>
-              <Input name="courseFeePaid" type="number" step="0.01" value={formData.courseFeePaid} onChange={handleChange} />
+              <Input name="courseFeePaid" type="number" step="0.01" value={formData.courseFeePaid} onChange={handleChange} className="w-full" />
             </div>
-
             <div>
               <Label>Hostel Fee Paid</Label>
-              <Input name="hostelFeePaid" type="number" step="0.01" value={formData.hostelFeePaid} onChange={handleChange} />
+              <Input name="hostelFeePaid" type="number" step="0.01" value={formData.hostelFeePaid} onChange={handleChange} className="w-full" />
             </div>
-
             <div>
               <Label>Total Fee Paid (auto)</Label>
-              <p className="px-3 py-2 bg-gray-100 rounded">{formData.totalFeePaid}</p>
+              <p className="px-3 py-2 bg-gray-100 rounded w-full">{formData.totalFeePaid}</p>
             </div>
-
-                            {/* notes  */}
-            <div className="col-span-2 shadow-lg border border-gray-200 hover:shadow-xl transition-shadow duration-300">
-                    <textarea
-                    name="notes"
-                    value={formData.notes}
-                    onChange={(e) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        notes: e.target.value
-                      }))
-                    }
-                    rows={5}
-                    className="w-full border rounded-md p-3"
-                    placeholder="Enter notes here..."
-                  />
+            {/* notes */}
+            <div className="col-span-1 md:col-span-2 lg:col-span-3">
+              <Label>Notes</Label>
+              <textarea
+                name="notes"
+                value={formData.notes}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    notes: e.target.value
+                  }))
+                }
+                rows={5}
+                className="w-full border rounded-md p-3"
+                placeholder="Enter notes here..."
+              />
             </div>
-
-            <div className="md:col-span-2 flex justify-end">
-              <Button type="submit" disabled={creating}>
+            <div className="col-span-1 md:col-span-2 lg:col-span-3 flex justify-end">
+              <Button type="submit" disabled={creating} className="w-full sm:w-auto">
                 {creating ? "Creating..." : "Create Client"}
               </Button>
             </div>
@@ -299,20 +286,16 @@ export default function NewClientPage() {
         </CardContent>
       </Card>
 
-            
-
-      
-
       {/* Documents */}
       <Card className="shadow-lg border border-gray-200 hover:shadow-xl transition-shadow duration-300">
-        <CardHeader className="flex justify-between items-center">
+        <CardHeader className="flex flex-col sm:flex-row justify-between items-center gap-2">
           <div className="flex items-center gap-2">
             <FileText className="w-6 h-6 text-green-600" />
             <CardTitle>Documents</CardTitle>
           </div>
           <div>
             <input ref={fileInputRef} type="file" accept="application/pdf,image/*" className="hidden" onChange={handleFileChange} disabled={uploadingDoc} />
-            <button type="button" onClick={handleUploadButtonClick} className={`inline-flex items-center gap-2 px-3 py-1.5 text-sm font-semibold text-white rounded-md shadow transition-colors duration-200 ${uploadingDoc ? "bg-gray-400" : "bg-green-600 hover:bg-green-700"}`}>
+            <button type="button" onClick={handleUploadButtonClick} className={`inline-flex items-center gap-2 px-3 py-1.5 text-sm font-semibold text-white rounded-md shadow transition-colors duration-200 w-full sm:w-auto ${uploadingDoc ? "bg-gray-400" : "bg-green-600 hover:bg-green-700"}`}>
               <UploadCloud className="w-5 h-5" />
               {uploadingDoc ? "Uploading..." : "Upload Document"}
             </button>
@@ -324,11 +307,11 @@ export default function NewClientPage() {
           ) : (
             <ul className="space-y-3">
               {documents.map((doc) => (
-                <li key={doc.id} className="flex justify-between items-center break-words bg-gray-50 rounded-md p-2 shadow-sm hover:bg-gray-100 transition-colors duration-150">
-                  <a href={doc.url} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline truncate flex-1">
+                <li key={doc.id} className="flex flex-col sm:flex-row justify-between items-center break-words bg-gray-50 rounded-md p-2 shadow-sm hover:bg-gray-100 transition-colors duration-150">
+                  <a href={doc.url} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline truncate w-full sm:w-auto flex-1">
                     {doc.name} {!doc.saved && <span className="text-xs ml-2 text-gray-500">(pending)</span>}
                   </a>
-                  <Button size="sm" variant="ghost" className="ml-3 text-red-600 hover:bg-red-100" onClick={() => handleDeleteDoc(doc.id)} disabled={deletingDocId === doc.id}>
+                  <Button size="sm" variant="ghost" className="ml-0 sm:ml-3 text-red-600 hover:bg-red-100 w-full sm:w-auto mt-2 sm:mt-0" onClick={() => handleDeleteDoc(doc.id)} disabled={deletingDocId === doc.id}>
                     {deletingDocId === doc.id ? <span className="text-xs">Deleting…</span> : <Trash2 className="w-5 h-5" />}
                   </Button>
                 </li>
