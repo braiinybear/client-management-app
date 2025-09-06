@@ -126,7 +126,6 @@ export default function NewClientPage() {
     setSuccess(null);
 
     try {
-      if (!formData.name.trim()) throw new Error("Name is required");
       if (!formData.phone.trim()) throw new Error("Phone is required");
 
       const pendingDocs = documents.filter((d) => !d.saved).map((d) => ({ name: d.name, url: d.url }));
