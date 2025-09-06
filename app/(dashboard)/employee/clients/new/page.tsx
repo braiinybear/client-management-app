@@ -190,7 +190,7 @@ export default function NewClientPage() {
           <form onSubmit={handleFormSubmit} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <div>
               <Label>Name</Label>
-              <Input name="name" value={formData.name} onChange={handleChange} required className="w-full" />
+              <Input name="name" value={formData.name} onChange={handleChange} className="w-full" />
             </div>
             <div>
               <Label>Phone</Label>
