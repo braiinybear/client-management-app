@@ -56,7 +56,7 @@ export async function POST(req: Request) {
     const body: ClientInput = await req.json();
 
     // Validate required fields
-    if (!body.name || !body.phone) {
+    if (!body.phone) {
       return NextResponse.json({ message: "Missing required fields" }, { status: 400 });
     }
 
@@ -83,7 +83,7 @@ export async function POST(req: Request) {
 
     const created = await prisma.client.create({
       data: {
-        name: body.name,
+        name: body.name ?? "N/A",
         phone: body.phone,
         status: clientStatus,
         callResponse: body.callResponse as any, // optional enum, use as any if not casted properly
