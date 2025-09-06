@@ -125,7 +125,7 @@ export default function EmployeeClientsTable({ clients: initialClients }: { clie
   return (
     <div className="p-4 sm:p-6 max-w-7xl mx-auto">
       {/* Header */}
-      <div className="bg-white shadow-sm border rounded-lg p-4 mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+      <div className=" shadow-sm border rounded-lg p-4 mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold text-gray-800">Clients</h1>
           <p className="text-gray-500 text-sm">Assigned clients only</p>
@@ -140,7 +140,7 @@ export default function EmployeeClientsTable({ clients: initialClients }: { clie
           />
           <button
             onClick={downloadCSV}
-            className="px-4 py-2 rounded-md bg-green-600 text-white hover:bg-green-500 transition"
+            className="px-4 py-2 rounded-md bg-green-600  hover:bg-green-500 transition"
           >
             Download CSV
           </button>
@@ -150,7 +150,7 @@ export default function EmployeeClientsTable({ clients: initialClients }: { clie
       {/* Table */}
       {paginatedClients.length > 0 ? (
         <>
-          <div className="bg-white rounded-lg shadow-sm border overflow-x-auto">
+          <div className=" rounded-lg shadow-sm border overflow-x-auto">
             <table className="w-full border-collapse min-w-[600px]">
               <thead className="bg-gray-50 border-b sticky top-0">
                 <tr>
@@ -191,7 +191,7 @@ export default function EmployeeClientsTable({ clients: initialClients }: { clie
             <button
               onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
               disabled={currentPage === 1}
-              className="px-3 py-1 rounded border text-sm bg-white disabled:opacity-50"
+              className="px-3 py-1 rounded border text-sm  disabled:opacity-50"
             >
               Prev
             </button>
@@ -210,7 +210,7 @@ export default function EmployeeClientsTable({ clients: initialClients }: { clie
                   key={page}
                   onClick={() => setCurrentPage(Number(page))}
                   className={`px-3 py-1 rounded border text-sm ${
-                    currentPage === page ? "bg-blue-600 text-white" : "bg-white"
+                    currentPage === page ? "bg-blue-600 " : ""
                   }`}
                 >
                   {page}
@@ -221,7 +221,7 @@ export default function EmployeeClientsTable({ clients: initialClients }: { clie
             <button
               onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
               disabled={currentPage === totalPages}
-              className="px-3 py-1 rounded border text-sm bg-white disabled:opacity-50"
+              className="px-3 py-1 rounded border text-sm  disabled:opacity-50"
             >
               Next
             </button>

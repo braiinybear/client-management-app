@@ -83,33 +83,33 @@ export default async function EmployeePage({ params }: Props) {
       case "FOLLOWUP":
         return "bg-blue-100 text-blue-800";
       case "COLD":
-        return "bg-gray-100 text-gray-800";
+        return "bg-gray-100 text-gray-400";
       case "SUCCESS":
         return "bg-green-100 text-green-800";
       default:
-        return "bg-gray-200 text-gray-700";
+        return "bg-gray-200 text-gray-300";
     }
   };
 
   return (
     <div className="max-w-6xl mx-auto p-6 space-y-10">
-      <h1 className="text-4xl font-bold text-gray-900">Employee Details</h1>
+      <h1 className="text-4xl font-bold text-gray-500">Employee Details</h1>
 
       {/* Employee Info */}
-      <Card className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-white p-6 rounded-lg shadow">
+      <Card className="grid grid-cols-1 md:grid-cols-2 gap-6  p-6 rounded-lg shadow">
         <div className="space-y-3">
-          <h2 className="text-xl font-semibold text-gray-800">Basic Information</h2>
+          <h2 className="text-xl font-semibold text-gray-400">Basic Information</h2>
           <p>
-            <strong className="text-gray-600">Name:</strong> {employee.name}
+            <strong className="text-gray-200">Name:</strong> {employee.name}
           </p>
           <p>
-            <strong className="text-gray-600">Email:</strong>{" "}
+            <strong className="text-gray-200">Email:</strong>{" "}
             <a href={`mailto:${employee.email}`} className="text-blue-600 hover:underline">
               {employee.email}
             </a>
           </p>
           <p>
-            <strong className="text-gray-600">Role:</strong>{" "}
+            <strong className="text-gray-200">Role:</strong>{" "}
             <span
               className={`inline-block px-2 py-1 text-sm font-medium rounded ${
                 employee.role === "ADMIN"
@@ -124,7 +124,7 @@ export default async function EmployeePage({ params }: Props) {
           </p>
           {employee.clerkId && (
             <p>
-              <strong className="text-gray-600">Clerk ID:</strong> {employee.clerkId}
+              <strong className="text-gray-200">Clerk ID:</strong> {employee.clerkId}
             </p>
           )}
         </div>
@@ -132,12 +132,12 @@ export default async function EmployeePage({ params }: Props) {
 
       {/* Assigned Clients Table */}
             <Card className="p-4">
-        <h2 className="text-2xl font-semibold text-gray-800 mb-4 text-center">Assigned Clients</h2>
+        <h2 className="text-2xl font-semibold text-gray-400 mb-4 text-center">Assigned Clients</h2>
         {employee.assignedClients.length ? (
-          <div className="overflow-x-auto bg-white rounded-lg ">
+          <div className="overflow-x-auto  rounded-lg ">
           <ScrollArea className="h-[50vh]">
-            <table className="min-w-full text-sm text-left text-gray-700">
-              <thead className="bg-gray-100 text-xs uppercase text-gray-600">
+            <table className="min-w-full text-sm text-left text-gray-300">
+              <thead className="bg-gray-100 text-xs uppercase text-gray-200">
                 <tr>
                   <th className="px-6 py-3">Client Name</th>
                   <th className="px-6 py-3">Status</th>
@@ -152,7 +152,7 @@ export default async function EmployeePage({ params }: Props) {
                     key={client.id}
                     className="border-t hover:bg-gray-50 transition-colors"
                   >
-                    <td className="px-6 py-4 font-medium text-gray-900">{client.name ?? "N/A"}</td>
+                    <td className="px-6 py-4 font-medium text-gray-500">{client.name ?? "N/A"}</td>
                     <td className="px-6 py-4">
                       <span
                         className={`px-2 py-1 text-xs font-medium rounded ${getStatusBadge(client.status as Status)}`}
@@ -160,7 +160,7 @@ export default async function EmployeePage({ params }: Props) {
                         {client.status?.toLowerCase() ?? "N/A"}
                       </span>
                     </td>
-                    <td className="px-6 py-4 font-medium text-gray-900">{client.phone ?? "N/A"}</td>
+                    <td className="px-6 py-4 font-medium text-gray-500">{client.phone ?? "N/A"}</td>
                   </tr>
                 )
                 })}
@@ -169,15 +169,15 @@ export default async function EmployeePage({ params }: Props) {
           </ScrollArea>
           </div>
         ) : (
-          <p className="text-gray-500">No clients assigned.</p>
+          <p className="text-gray-400">No clients assigned.</p>
         )}
       </Card>
 
       {/* Performance Chart */}
       <Card className="shadow-lg">
-        <h2 className="text-2xl text-center font-semibold text-gray-800 mb-4">Performance Metrics</h2>
+        <h2 className="text-2xl text-center font-semibold dark:text-gray-300 text-gray-400 mb-4">Performance Metrics</h2>
         {performanceData.length ? (
-          <div className="bg-white p-6 rounded-lg ">
+          <div className=" p-6 rounded-lg ">
             <PerformanceChart data={performanceData} />
           </div>
         ) : (

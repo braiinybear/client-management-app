@@ -50,7 +50,7 @@ export default function CreateEmployeePage() {
   };
 
   return (
-    <div className="max-w-3xl mx-auto p-8 bg-white rounded shadow mt-8">
+    <div className="max-w-3xl mx-auto p-8  rounded shadow mt-8">
       <h1 className="text-3xl font-semibold mb-6">Create New Employee</h1>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
@@ -102,7 +102,7 @@ export default function CreateEmployeePage() {
         <button
           type="submit"
           disabled={loading}
-          className="bg-blue-600 text-white font-semibold px-6 py-2 rounded hover:bg-blue-700 disabled:opacity-50"
+          className="bg-blue-600  font-semibold px-6 py-2 rounded hover:bg-blue-700 disabled:opacity-50"
         >
           {loading ? "Creating..." : "Create Employee"}
         </button>

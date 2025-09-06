@@ -137,7 +137,7 @@ export default function AdminEmployeesPage() {
 
   return (
     <div className="p-6 mx-auto max-w-7xl">
-      <div className="bg-white shadow-md rounded-lg p-4 mb-6 flex flex-col md:flex-row md:justify-between gap-4">
+      <div className=" shadow-md rounded-lg p-4 mb-6 flex flex-col md:flex-row md:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold">Employees Management</h1>
           <p className="text-gray-600 text-sm">Browse and manage employees</p>
@@ -167,7 +167,7 @@ export default function AdminEmployeesPage() {
           </Button>
           <Link
             href="/admin/employees/new"
-            className="bg-indigo-600 hover:bg-indigo-500 text-white rounded px-4 py-2"
+            className="bg-indigo-600 hover:bg-indigo-500  rounded px-4 py-2"
           >
             Add Employee
           </Link>

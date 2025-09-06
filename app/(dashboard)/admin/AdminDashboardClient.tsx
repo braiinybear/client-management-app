@@ -202,7 +202,7 @@ export default function AdminDashboardClient({
         <Link href="/admin/employees" className="block hover:opacity-90 transition">
           <StatCard title="Total Employees" value={totalEmployees.toLocaleString()} />
         </Link>
-        <div className="border rounded-md p-3 bg-white shadow-sm">
+        <div className="border rounded-md p-3  shadow-sm">
           <div className="flex items-center justify-between mb-2">
             <div className="text-sm font-medium">Clients by Status</div>
           </div>

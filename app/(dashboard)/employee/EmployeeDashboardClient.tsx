@@ -138,7 +138,7 @@ export default function EmployeeDashboardClient({
           </div>
         </div>
 
-        <div className="bg-white rounded-md shadow max-h-[50vh] overflow-y-auto">
+        <div className=" rounded-md shadow max-h-[50vh] overflow-y-auto">
           {recentClientsState.length > 0 ? (
             recentClientsState.map((client) => (
               <div

@@ -4,7 +4,7 @@ import { ColumnDef } from "@tanstack/react-table";
 export type Client = {
   id: string;
   name: string;
-  email: string;
+  assignedEmployee?: { id: string; name: string } | null;
   phone: string;
   status: string;
 };

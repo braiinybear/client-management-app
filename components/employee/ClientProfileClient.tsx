@@ -495,7 +495,7 @@ const handleSaveSection = async (section: "details" | "fees" | "notes") => {
             />
             <label
               htmlFor="upload-doc-input"
-              className="cursor-pointer inline-flex items-center gap-2 px-3 py-1.5 text-sm font-semibold text-white bg-green-600 rounded-md shadow hover:bg-green-700 transition-colors duration-200"
+              className="cursor-pointer inline-flex items-center gap-2 px-3 py-1.5 text-sm font-semibold  bg-green-600 rounded-md shadow hover:bg-green-700 transition-colors duration-200"
             >
               <UploadCloud className="w-5 h-5" />
               {uploadingDoc ? "Uploading..." : "Upload Document"}

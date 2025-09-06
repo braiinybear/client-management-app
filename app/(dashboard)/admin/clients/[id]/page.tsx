@@ -60,7 +60,7 @@ export default async function ClientPage({ params }: Props) {
       <h1 className="text-4xl font-bold mb-8 text-gray-900 border-b pb-3">Client Details</h1>
 
       {/* Basic Info */}
-      <section className="bg-white rounded-lg shadow-md p-6 mb-8">
+      <section className=" rounded-lg shadow-md p-6 mb-8">
         <h2 className="text-2xl font-semibold mb-4 text-gray-800 flex items-center gap-2">
           <UserCircle size={28} /> Basic Information
         </h2>
@@ -78,7 +78,7 @@ export default async function ClientPage({ params }: Props) {
           <div>
             <p className="font-semibold text-gray-900">Status</p>
             <span
-              className={`inline-block px-3 py-1 rounded-full text-white font-medium ${
+              className={`inline-block px-3 py-1 rounded-full  font-medium ${
                 client.status === "HOT"
                   ? "bg-red-600"
                   : client.status === "PROSPECT"
@@ -151,7 +151,7 @@ export default async function ClientPage({ params }: Props) {
       </section>
 
       {/* Created By */}
-      <section className="bg-white rounded-lg shadow-md p-6 mb-8">
+      <section className=" rounded-lg shadow-md p-6 mb-8">
         <h2 className="text-2xl font-semibold mb-4 text-gray-800 flex items-center gap-2">
           <UserCircle size={28} /> Created By
         </h2>
@@ -166,7 +166,7 @@ export default async function ClientPage({ params }: Props) {
       </section>
 
       {/* Assigned Employee */}
-      <section className="bg-white rounded-lg shadow-md p-6 mb-8">
+      <section className=" rounded-lg shadow-md p-6 mb-8">
         <h2 className="text-2xl font-semibold mb-4 text-gray-800 flex items-center gap-2">
           <UserCircle size={28} /> Assigned Employee
         </h2>
@@ -185,7 +185,7 @@ export default async function ClientPage({ params }: Props) {
       </section>
 
       {/* Documents */}
-      <section className="bg-white rounded-lg shadow-md p-6">
+      <section className=" rounded-lg shadow-md p-6">
         <h2 className="text-2xl font-semibold mb-4 text-gray-800 flex items-center gap-2">
           <Archive size={28} /> Documents
         </h2>

@@ -13,6 +13,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Menu } from "lucide-react";
 import { DialogTitle } from "@radix-ui/react-dialog";
 import { UserButton, useUser } from "@clerk/nextjs";
+import { ModeToggle } from "./ui/toggleTheme";
 
 export type SidebarLink = {
   label: string;
@@ -60,7 +61,7 @@ export function Sidebar({ links, title = "Dashboard" }: SidebarProps) {
                     className={`flex items-center px-3 py-2 rounded-md text-sm font-medium
                       ${
                         isActive(href)
-                          ? "bg-indigo-600 text-white"
+                          ? "bg-indigo-600 "
                           : "text-gray-700 hover:bg-gray-100"
                       }
                       ${disabled ? "opacity-50 cursor-not-allowed" : ""}
@@ -72,8 +73,20 @@ export function Sidebar({ links, title = "Dashboard" }: SidebarProps) {
                 ))}
               </nav>
             </ScrollArea>
-            <UserButton />
-            <div className="px-4 py-3 text-xs text-gray-500 border-t border-gray-200">
+            <div className="w-full flex gap-2 justify-center items-center p-4 border-t border-gray-200">
+              <ModeToggle />
+              <UserButton
+        appearance={{
+          elements: {
+            userButtonAvatarBox: {
+              width: "4.1rem",
+              height: "4.1rem",
+            },
+          },
+        }}
+      />
+            </div>
+            <div className="px-4 py-3 text-xs text-gray-400 border-t border-gray-200">
               © {new Date().getFullYear()} Your Company
             </div>
           </SheetContent>
@@ -81,7 +94,7 @@ export function Sidebar({ links, title = "Dashboard" }: SidebarProps) {
       </div>
 
       {/* Desktop Sidebar */}
-      <aside className="hidden md:flex md:flex-col md:w-64 md:h-screen md:border-r md:border-gray-200 md:bg-white">
+      <aside className="hidden md:flex md:flex-col md:w-64 md:h-screen md:border-r md:border-gray-200 md:">
         <div className="flex items-center h-16 px-6 border-b border-gray-200 font-bold text-lg">
           {title}
         </div>
@@ -94,7 +107,7 @@ export function Sidebar({ links, title = "Dashboard" }: SidebarProps) {
                 className={`flex items-center px-3 py-2 rounded-md text-sm font-medium
                   ${
                     isActive(href)
-                      ? "bg-indigo-600 text-white"
+                      ? "bg-indigo-600 "
                       : "text-gray-700 hover:bg-gray-100"
                   }
                   ${disabled ? "opacity-50 cursor-not-allowed" : ""}
@@ -106,7 +119,8 @@ export function Sidebar({ links, title = "Dashboard" }: SidebarProps) {
             ))}
           </nav>
         </ScrollArea>
-    <div className="flex flex-col gap-1 justify-center items-center w-full h-[6rem] shadow-md bg-white rounded-lg px-4 space-x-4">
+    <div className="flex gap-2 flex-col justify-center items-center w-full h-[10rem] shadow-md  rounded-lg px-4 space-x-4">
+      <ModeToggle />
       <UserButton
         appearance={{
           elements: {
@@ -117,11 +131,11 @@ export function Sidebar({ links, title = "Dashboard" }: SidebarProps) {
           },
         }}
       />
-      <h4 className="text-md text-center font-serif font-medium text-gray-800 mr-2">
+      <h4 className="text-md text-center font-serif font-medium text-gray-500 mr-2">
         {user?.firstName ?? user?.username ?? ""}
       </h4>
     </div>
-        <div className="px-4 py-3 text-xs text-gray-500 border-t border-gray-200">
+        <div className="px-4 py-3 text-xs text-gray-400 border-t border-gray-300">
           © {new Date().getFullYear()} Braiiny Bear
         </div>
       </aside>

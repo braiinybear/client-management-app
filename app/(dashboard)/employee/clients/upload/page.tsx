@@ -43,7 +43,7 @@ export default function BulkUpload() {
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-50 px-4">
-      <div className="w-full max-w-lg bg-white shadow-md rounded-lg p-8">
+      <div className="w-full max-w-lg  shadow-md rounded-lg p-8">
         <div className="flex items-center space-x-2 mb-6">
           <CloudUpload className="text-blue-600" size={28} />
           <h2 className="text-2xl font-semibold text-gray-800">Bulk Upload Clients</h2>
@@ -53,7 +53,7 @@ export default function BulkUpload() {
           className={`flex flex-col items-center justify-center w-full h-40 border-2 border-dashed rounded-lg cursor-pointer transition mb-6
             ${file ? "bg-sky-400 border-blue-950" : "border-gray-300 hover:border-blue-500"}`}
         >
-          <span className={`${file ? "text-white" : "text-gray-500"}`}>
+          <span className={`${file ? "" : "text-gray-500"}`}>
             {file ? file.name : "Click to select a .csv or Excel file"}
           </span>
           <input
@@ -67,7 +67,7 @@ export default function BulkUpload() {
         <button
           onClick={handleUpload}
           disabled={isUploading}
-          className={`w-full flex items-center justify-center bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded transition disabled:opacity-60`}
+          className={`w-full flex items-center justify-center bg-blue-600 hover:bg-blue-700  font-semibold py-2 px-4 rounded transition disabled:opacity-60`}
         >
           {isUploading ? (
             <>

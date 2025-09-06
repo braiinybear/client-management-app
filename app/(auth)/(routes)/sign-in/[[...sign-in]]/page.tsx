@@ -20,7 +20,7 @@ export default function SignInPage() {
             },
             elements: {
               formButtonPrimary:
-                'bg-blue-600 hover:bg-blue-500 text-white text-base font-medium',
+                'bg-blue-600 hover:bg-blue-500 text-base font-medium',
             },
           }}
           signUpUrl="/sign-up"

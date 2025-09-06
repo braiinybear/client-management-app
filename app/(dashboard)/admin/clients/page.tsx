@@ -24,6 +24,7 @@ export default function AdminClientsPage() {
       if (!res.ok) throw new Error(`Failed to fetch clients: ${res.statusText}`);
       const data: Client[] = await res.json();
       setClients(data);
+      console.log("Fetched clients:", data);
       setFilteredClients(data);
     } catch (err) {
       setError((err as Error).message || "Something went wrong.");
@@ -44,7 +45,7 @@ export default function AdminClientsPage() {
       const lower = search.toLowerCase();
       setFilteredClients(
         clients.filter((c) =>
-          [c.name ?? "", c.phone ?? "", c.status ?? ""].some((field) =>
+          [c.name ?? "", c.phone ?? "", c.status ?? "",c.assignedEmployee?.name ?? ""].some((field) =>
             field.toLowerCase().includes(lower)
           )
         )
@@ -71,10 +72,11 @@ export default function AdminClientsPage() {
   };
 
   const downloadCSV = () => {
-    const headers = ["Name", "Phone", "Status"];
+    const headers = ["Name", "Phone","Assigned Employee", "Status"];
     const rows = filteredClients.map((c) => [
       c.name || "",
       c.phone || "",
+      c?.assignedEmployee?.name || "",
       c.status || "",
     ]);
 
@@ -140,7 +142,7 @@ export default function AdminClientsPage() {
   return (
     <div className="p-4 sm:p-6 max-w-7xl mx-auto">
       {/* Toolbar */}
-      <div className="bg-white shadow-sm border rounded-lg p-4 mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+      <div className=" shadow-sm border rounded-lg p-4 mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold text-gray-800">Clients</h1>
           <p className="text-gray-500 text-sm">Manage and monitor all registered clients</p>
@@ -155,13 +157,13 @@ export default function AdminClientsPage() {
           />
           <button
             onClick={fetchClients}
-            className="px-4 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-500 transition"
+            className="px-4 py-2 rounded-md bg-blue-600  hover:bg-blue-500 transition"
           >
             Refresh
           </button>
           <button
             onClick={downloadCSV}
-            className="px-4 py-2 rounded-md bg-green-600 text-white hover:bg-green-500 transition"
+            className="px-4 py-2 rounded-md bg-green-600  hover:bg-green-500 transition"
           >
             Download CSV
           </button>
@@ -194,11 +196,12 @@ export default function AdminClientsPage() {
       {/* Data Table */}
       {!loading && !error && paginatedClients.length > 0 && (
         <>
-          <div className="bg-white rounded-lg shadow-sm border overflow-x-auto">
+          <div className=" rounded-lg shadow-sm border overflow-x-auto">
             <table className="w-full border-collapse min-w-[600px]">
               <thead className="bg-gray-50 border-b sticky top-0">
                 <tr>
                   <th className="text-left px-4 py-3 text-sm font-medium text-gray-600">Name</th>
+                  <th className="text-left px-4 py-3 text-sm font-medium text-gray-600">Assigned Employee</th>
                   <th className="text-left px-4 py-3 text-sm font-medium text-gray-600">Phone</th>
                   <th className="text-left px-4 py-3 text-sm font-medium text-gray-600">Status</th>
                 </tr>
@@ -208,9 +211,10 @@ export default function AdminClientsPage() {
                   <tr
                     onClick={() => router.push(`clients/${c.id}`)}
                     key={idx}
-                    className="hover:bg-gray-50 cursor-pointer transition-colors border-b last:border-0"
+                    className="hover:bg-gray-600 cursor-pointer transition-colors border-b last:border-0"
                   >
                     <td className="px-4 py-3">{c.name || "N/A"}</td>
+                    <td className="px-4 py-3">{c?.assignedEmployee?.name || "N/A"}</td>
                     <td className="px-4 py-3">{c.phone || "N/A"}</td>
                     <td className="px-4 py-3">
                       <span
@@ -233,7 +237,7 @@ export default function AdminClientsPage() {
             <button
               onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
               disabled={currentPage === 1}
-              className="px-3 py-1 rounded border text-sm bg-white disabled:opacity-50"
+              className="px-3 py-1 rounded border text-sm  disabled:opacity-50"
             >
               Prev
             </button>
@@ -252,7 +256,7 @@ export default function AdminClientsPage() {
                   key={page}
                   onClick={() => setCurrentPage(Number(page))}
                   className={`px-3 py-1 rounded border text-sm ${
-                    currentPage === page ? "bg-blue-600 text-white" : "bg-white"
+                    currentPage === page ? "bg-blue-600 " : ""
                   }`}
                 >
                   {page}
@@ -263,7 +267,7 @@ export default function AdminClientsPage() {
             <button
               onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
               disabled={currentPage === totalPages}
-              className="px-3 py-1 rounded border text-sm bg-white disabled:opacity-50"
+              className="px-3 py-1 rounded border text-sm  disabled:opacity-50"
             >
               Next
             </button>

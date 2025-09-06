@@ -1,19 +1,19 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { ClerkProvider } from "@clerk/nextjs";
 import { shadesOfPurple } from '@clerk/themes'
+import { ThemeProvider } from "@/components/theme-provider";
+import { Oxanium } from "next/font/google";
+
+
+
 
 // Importing the fonts with custom variables
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+const OxaniumFont = Oxanium({
+  subsets:['latin'],
+  weight:"400"
+})
 
 // Metadata for the page (this can be dynamic as needed)
 export const metadata: Metadata = {
@@ -34,9 +34,16 @@ export default function RootLayout({
       }}>
       <html lang="en">
         <body
-          className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+          className={`${OxaniumFont.className} antialiased`}
         >
+           <ThemeProvider
+            attribute="class"
+            defaultTheme="system"
+            enableSystem
+            disableTransitionOnChange
+          >
           {children}
+          </ThemeProvider>
         </body>
       </html>
     </ClerkProvider>

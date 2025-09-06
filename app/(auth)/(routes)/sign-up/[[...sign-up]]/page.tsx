@@ -24,7 +24,7 @@ export default function SignUpPage() {
             },
             elements: {
               formButtonPrimary:
-                'bg-blue-600 hover:bg-blue-500 text-white font-medium',
+                'bg-blue-600 hover:bg-blue-500  font-medium',
             },
           }}
           signInUrl="/sign-in"
