@@ -32,7 +32,7 @@ export default function RootLayout({
         baseTheme: shadesOfPurple,
         signIn: { baseTheme: shadesOfPurple },  // Example: separate theme for the sign-in form
       }}>
-      <html lang="en">
+      <html lang="en" suppressHydrationWarning >
         <body
           className={`${OxaniumFont.className} antialiased`}
         >

@@ -402,7 +402,7 @@ const handleSaveSection = async (section: "details" | "fees" | "notes") => {
     <div className="max-w-4xl mx-auto p-6 space-y-10 font-sans">
       {/* Header */}
       <div className="flex justify-between items-center flex-wrap gap-3">
-        <h1 className="text-3xl font-extrabold flex items-center gap-2 text-gray-900">
+        <h1 className="text-3xl font-extrabold flex items-center gap-2 text-gray-500">
           <User className="w-8 h-8 text-blue-600" /> Client Profile & Edit
         </h1>
         
@@ -438,7 +438,7 @@ const handleSaveSection = async (section: "details" | "fees" | "notes") => {
       <Card className="shadow-lg border border-gray-200 hover:shadow-xl transition-shadow duration-300">
         <CardHeader className="flex justify-between items-center gap-2">
           <div className="flex items-center justify-center gap-2">
-            <FileText className="w-6 h-6 text-indigo-600" />
+            <FileText className="w-6 h-6 text-indigo-800" />
           <CardTitle>Client Overview</CardTitle>
           </div>
 
@@ -510,7 +510,7 @@ const handleSaveSection = async (section: "details" | "fees" | "notes") => {
               {documents.map((doc) => (
                 <li
                   key={doc.id}
-                  className="flex justify-between items-center break-words bg-gray-50 rounded-md p-2 shadow-sm hover:bg-gray-100 transition-colors duration-150"
+                  className="flex justify-between items-center break-words bg-gray-50 dark:bg-gray-800 rounded-md p-2 shadow-sm hover:bg-gray-100 hover:text-black transition-colors duration-150"
                 >
                   <a
                     href={doc.url}
@@ -602,7 +602,7 @@ const handleSaveSection = async (section: "details" | "fees" | "notes") => {
                   className="transition-shadow focus:shadow-outline"
                 />
               ) : (
-                <p className="px-3 py-2 bg-gray-100 rounded select-text truncate max-w-full">
+                <p className="px-3 py-2 bg-gray-100 dark:bg-gray-800 rounded select-text truncate max-w-full">
                   {(formData as any)[id]}
                 </p>
               )}
@@ -633,7 +633,7 @@ const handleSaveSection = async (section: "details" | "fees" | "notes") => {
                 </SelectContent>
               </Select>
             ) : (
-              <p className="px-3 py-2 bg-gray-100 rounded select-text max-w-full truncate">
+              <p className="px-3 py-2 bg-gray-100 dark:bg-gray-800 rounded select-text max-w-full truncate">
                 {formData.callResponse}
               </p>
             )}
@@ -664,7 +664,7 @@ const handleSaveSection = async (section: "details" | "fees" | "notes") => {
                 </SelectContent>
               </Select>
             ) : (
-              <p className="px-3 py-2 bg-gray-100 rounded select-text max-w-full truncate">
+              <p className="px-3 py-2 bg-gray-100 dark:bg-gray-800 rounded select-text max-w-full truncate">
                 {formData.status}
               </p>
             )}
@@ -684,7 +684,7 @@ const handleSaveSection = async (section: "details" | "fees" | "notes") => {
                 className="transition-shadow focus:shadow-outline"
               />
             ) : (
-              <p className="px-3 py-2 bg-gray-100 rounded select-text truncate max-w-full">
+              <p className="px-3 py-2 bg-gray-100 dark:bg-gray-800 rounded select-text truncate max-w-full">
                 {formData.course || "-"}
               </p>
             )}
@@ -741,7 +741,7 @@ const handleSaveSection = async (section: "details" | "fees" | "notes") => {
               placeholder="Enter notes here..."
             />
           ) : (
-            <p className="px-3 py-2 bg-gray-100 rounded select-text whitespace-pre-wrap">
+            <p className="px-3 py-2 bg-gray-100 dark:bg-gray-800 rounded select-text whitespace-pre-wrap">
               {formData.notes || "No notes available."}
             </p>
           )}
@@ -812,7 +812,7 @@ const handleSaveSection = async (section: "details" | "fees" | "notes") => {
                   className="transition-shadow focus:shadow-outline"
                 />
               ) : (
-                <p className="px-3 py-2 bg-gray-100 rounded select-text truncate max-w-full">
+                <p className="px-3 py-2 bg-gray-100 dark:bg-gray-800 rounded select-text truncate max-w-full">
                   {(formData as any)[id] || "-"}
                 </p>
               )}
@@ -830,7 +830,7 @@ const handleSaveSection = async (section: "details" | "fees" | "notes") => {
             </label>
             <p
               id="totalFee"
-              className="px-3 py-2 bg-gray-100 rounded select-text truncate max-w-full cursor-default"
+              className="px-3 py-2 bg-gray-100 dark:bg-gray-800 rounded select-text truncate max-w-full cursor-default"
               aria-readonly="true"
             >
               {formData.totalFee || "0.00"}
@@ -859,7 +859,7 @@ const handleSaveSection = async (section: "details" | "fees" | "notes") => {
                   className="transition-shadow focus:shadow-outline"
                 />
               ) : (
-                <p className="px-3 py-2 bg-gray-100 rounded select-text truncate max-w-full">
+                <p className="px-3 py-2 bg-gray-100 dark:bg-gray-800 rounded select-text truncate max-w-full">
                   {(formData as any)[id] || "-"}
                 </p>
               )}
@@ -877,7 +877,7 @@ const handleSaveSection = async (section: "details" | "fees" | "notes") => {
                 </label>
                 <p
                   id="totalFeePaid"
-                  className="px-3 py-2 bg-gray-100 rounded select-text truncate max-w-full cursor-default"
+                  className="px-3 py-2 bg-gray-100 dark:bg-gray-800 rounded select-text truncate max-w-full cursor-default"
                   aria-readonly="true"
                 >
                   {formData.totalFeePaid || "0.00"}

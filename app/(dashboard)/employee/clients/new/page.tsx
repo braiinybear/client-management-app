@@ -39,7 +39,7 @@ export default function NewClientPage() {
     courseFeePaid: "",
     hostelFeePaid: "",
     totalFeePaid: "0.00",
-    callResponse: "" as "" | "HANGUP" | "NOTINTERESTED" | "WRONG" | "NOTRESPONDED",
+    callResponse: "" as "" | "HANGUP" | "NOTINTERESTED" | "WRONG" | "NOTRESPONDED" | "NOTREACHED" | "ONGOING" | "COMPLETED",
   });
 
   const [creating, setCreating] = useState(false);
@@ -176,7 +176,7 @@ export default function NewClientPage() {
   return (
     <div className="max-w-4xl mx-auto p-4 sm:p-6 space-y-8 font-sans">
       <div className="flex flex-col sm:flex-row justify-between items-center gap-3">
-        <h1 className="text-2xl sm:text-3xl font-extrabold flex items-center gap-2 text-gray-900">
+        <h1 className="text-2xl sm:text-3xl font-extrabold flex items-center gap-2 text-gray-500">
           <User className="w-8 h-8 text-blue-600" /> Create Client
         </h1>
       </div>
@@ -211,10 +211,13 @@ export default function NewClientPage() {
                   <SelectValue placeholder="Select status" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="HANGUP">Hang Up</SelectItem>
+                  <SelectItem value="HANGUP">Hanged Up By Client</SelectItem>
                   <SelectItem value="NOTINTERESTED">Not Interested</SelectItem>
-                  <SelectItem value="WRONG">Wrong</SelectItem>
+                  <SelectItem value="WRONG">Wrong Number</SelectItem>
                   <SelectItem value="NOTRESPONDED">Not Responded</SelectItem>
+                  <SelectItem value="NOTREACHED">Not Reached</SelectItem>
+                  <SelectItem value="ONGOING">Ongoing</SelectItem>
+                  <SelectItem value="COMPLETED">Completed</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -240,24 +243,24 @@ export default function NewClientPage() {
               <Input name="hostelFee" type="number" step="0.01" value={formData.hostelFee} onChange={handleChange} className="w-full" />
             </div>
             <div>
-              <Label>Course Fee</Label>
-              <Input name="courseFee" type="number" step="0.01" value={formData.courseFee} onChange={handleChange} className="w-full" />
+              <Label>Hostel Fee Paid</Label>
+              <Input name="hostelFeePaid" type="number" step="0.01" value={formData.hostelFeePaid} onChange={handleChange} className="w-full" />
             </div>
             <div>
               <Label>Total Fee (auto)</Label>
-              <p className="px-3 py-2 bg-gray-100 rounded w-full">{formData.totalFee}</p>
+              <p className="px-3 py-2 rounded w-full">{formData.totalFee}</p>
+            </div>
+             <div>
+              <Label>Course Fee</Label>
+              <Input name="courseFee" type="number" step="0.01" value={formData.courseFee} onChange={handleChange} className="w-full" />
             </div>
             <div>
               <Label>Course Fee Paid</Label>
               <Input name="courseFeePaid" type="number" step="0.01" value={formData.courseFeePaid} onChange={handleChange} className="w-full" />
             </div>
             <div>
-              <Label>Hostel Fee Paid</Label>
-              <Input name="hostelFeePaid" type="number" step="0.01" value={formData.hostelFeePaid} onChange={handleChange} className="w-full" />
-            </div>
-            <div>
               <Label>Total Fee Paid (auto)</Label>
-              <p className="px-3 py-2 bg-gray-100 rounded w-full">{formData.totalFeePaid}</p>
+              <p className="px-3 py-2 rounded w-full">{formData.totalFeePaid}</p>
             </div>
             {/* notes */}
             <div className="col-span-1 md:col-span-2 lg:col-span-3">

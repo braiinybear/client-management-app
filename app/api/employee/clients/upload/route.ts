@@ -3,6 +3,7 @@ import prisma from "@/lib/prisma";
 import * as XLSX from "xlsx";
 import { auth } from "@clerk/nextjs/server";
 import { cleanExcelData } from "@/utils/cleanExcelData";
+import pLimit from "p-limit";
 
 export const POST = async (req: Request) => {
   try {
@@ -30,34 +31,35 @@ export const POST = async (req: Request) => {
 
     const { cleaned, errors } = cleanExcelData(data);
 
-    // Upsert clients by phone:
-    // If phone exists, update fields like name, status, notes etc.
-    // If phone doesn't exist, create new client
+    // Use concurrency limit to avoid Prisma connection pool timeout
+    const limit = pLimit(3);
+
     const upsertPromises = cleaned.map((client) =>
-      prisma.client.upsert({
-        where: { phone: client.phone },
-        update: {
-          // Only update fields if provided (not null or undefined)
-          ...(client.name && { name: client.name }),
-          status: client.status,
-          notes: client.notes,
-          course: client.course,
-          hostelFee: client.hostelFee,
-          courseFee: client.courseFee,
-          totalFee: client.totalFee,
-          courseFeePaid: client.courseFeePaid,
-          hostelFeePaid: client.hostelFeePaid,
-          totalFeePaid: client.totalFeePaid,
-          callResponse: client.callResponse,
-          assignedEmployeeId: me.id,
-          userId: me.id,
-        },
-        create: {
-          ...client,
-          userId: me.id,
-          assignedEmployeeId: me.id,
-        },
-      })
+      limit(() =>
+        prisma.client.upsert({
+          where: { phone: client.phone },
+          update: {
+            ...(client.name && { name: client.name }),
+            status: client.status,
+            notes: client.notes,
+            course: client.course,
+            hostelFee: client.hostelFee,
+            courseFee: client.courseFee,
+            totalFee: client.totalFee,
+            courseFeePaid: client.courseFeePaid,
+            hostelFeePaid: client.hostelFeePaid,
+            totalFeePaid: client.totalFeePaid,
+            callResponse: client.callResponse,
+            assignedEmployeeId: me.id,
+            userId: me.id,
+          },
+          create: {
+            ...client,
+            userId: me.id,
+            assignedEmployeeId: me.id,
+          },
+        })
+      )
     );
 
     const results = await Promise.all(upsertPromises);

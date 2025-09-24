@@ -3,9 +3,38 @@ const STATUS_ENUM = ["HOT", "PROSPECT", "FOLLOWUP", "COLD", "SUCCESS"];
 const STATUS_COLUMN_MAP: Record<string, string> = {
   "HOT": "HOT",
   "PROSPECT": "PROSPECT",
-  "FOLLOW-UP": "FOLLOWUP",  // map hyphenated header to enum key
+  "FOLLOW-UP": "FOLLOWUP",
   "COLD": "COLD",
   "SUCCESS": "SUCCESS",
+};
+
+const CALL_RESPONSE_ENUM = [
+  "HANGUP",
+  "NOTINTERESTED",
+  "WRONG",
+  "NOTRESPONDED",
+  "NOTREACHED",
+  "ONGOING",
+  "COMPLETED",
+];
+
+const CALL_RESPONSE_MAP: Record<string, string> = {
+  "hang up": "HANGUP",
+  "hung up": "HANGUP",
+  "hanged up": "HANGUP",
+  "hangup": "HANGUP",
+  "hang call": "HANGUP",
+  "hang call by client": "HANGUP",
+  "hang call by cilent": "HANGUP", // typo fix included
+  "not interested": "NOTINTERESTED",
+  "wrong": "WRONG",
+  "wrong number": "WRONG",
+  "not responded": "NOTRESPONDED",
+  "no response": "NOTRESPONDED",
+  "no answer": "NOTRESPONDED",
+  "not reached": "NOTREACHED",
+  "ongoing": "ONGOING",
+  "completed": "COMPLETED",
 };
 
 export const cleanExcelData = (rows: any[]) => {
@@ -75,7 +104,7 @@ export const cleanExcelData = (rows: any[]) => {
       }
     });
 
-    // Infer status from YES columns (normalized)
+    // Infer status from "YES" columns
     cleanedRow.status = undefined;
     for (const col of Object.keys(STATUS_COLUMN_MAP)) {
       const val = normalizedRow[col];
@@ -85,19 +114,37 @@ export const cleanExcelData = (rows: any[]) => {
       }
     }
 
-    // Override with 'Status' column if present and valid
+    // Override with 'Status' column if present
     if (!cleanedRow.status && normalizedRow["STATUS"]) {
       let val = String(normalizedRow["STATUS"]).trim().toUpperCase();
-      // Normalize: remove spaces and hyphens for matching enum keys
       val = val.replace(/[\s-]/g, "");
       if (STATUS_ENUM.includes(val)) {
         cleanedRow.status = val;
       }
     }
 
-    // Set defaults for missing fields
+    // Default status if still missing
     cleanedRow.status = cleanedRow.status ?? "PROSPECT";
-    cleanedRow.callResponse = cleanedRow.callResponse ?? null;
+
+    // Handle callResponse mapping
+    let rawCallResponse = cleanedRow.callResponse;
+    if (rawCallResponse) {
+      rawCallResponse = String(rawCallResponse).trim().toLowerCase();
+      const mapped = CALL_RESPONSE_MAP[rawCallResponse];
+      if (mapped && CALL_RESPONSE_ENUM.includes(mapped)) {
+        cleanedRow.callResponse = mapped;
+      } else {
+        errors.push({
+          row: index + 2,
+          message: `Invalid call response: "${cleanedRow.callResponse}", defaulted to ONGOING.`,
+        });
+        cleanedRow.callResponse = "ONGOING";
+      }
+    } else {
+      cleanedRow.callResponse = "ONGOING";
+    }
+
+    // Set nulls for missing optional fields
     cleanedRow.notes = cleanedRow.notes ?? null;
     cleanedRow.course = cleanedRow.course ?? null;
     cleanedRow.hostelFee = cleanedRow.hostelFee ?? null;
@@ -107,8 +154,7 @@ export const cleanExcelData = (rows: any[]) => {
     cleanedRow.hostelFeePaid = cleanedRow.hostelFeePaid ?? null;
     cleanedRow.totalFeePaid = cleanedRow.totalFeePaid ?? null;
 
-    console.log(`Row ${index + 2} Status: ${cleanedRow.status}`); // Debug print
-
+    // Final validation: phone is mandatory
     if (!cleanedRow.phone) {
       errors.push({ row: index + 2, message: "Missing phone" });
     } else {
