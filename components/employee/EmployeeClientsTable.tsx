@@ -16,6 +16,8 @@ export interface Client {
 export default function EmployeeClientsTable({ clients: initialClients }: { clients: Client[] }) {
   const [clients, setClients] = useState<Client[]>(initialClients);
   const [search, setSearch] = useState("");
+  const [deleting, setDeleting] = useState(false);
+  const [selectedClientIds, setSelectedClientIds] = useState<Set<string>>(new Set());
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
   const router = useRouter();
@@ -31,7 +33,7 @@ export default function EmployeeClientsTable({ clients: initialClients }: { clie
   }, [search, clients]);
 
   useEffect(() => {
-    setCurrentPage(1); // Reset to page 1 when search changes
+    setCurrentPage(1);
   }, [search]);
 
   const totalPages = Math.ceil(filteredClients.length / itemsPerPage);
@@ -62,21 +64,70 @@ export default function EmployeeClientsTable({ clients: initialClients }: { clie
     try {
       const res = await fetch(`/api/employee/clients/${id}`, { method: "DELETE" });
       if (!res.ok) throw new Error("Deletion failed");
-
       toast.success("Client deleted");
-
       const updatedClients = clients.filter((c) => c.id !== id);
       setClients(updatedClients);
-
-      const newTotalPages = Math.ceil(updatedClients.length / itemsPerPage);
-      if (currentPage > newTotalPages) {
-        setCurrentPage(newTotalPages || 1);
-      }
-
+      setSelectedClientIds((prev) => {
+        const newSet = new Set(prev);
+        newSet.delete(id);
+        return newSet;
+      });
     } catch (error) {
       console.error(error);
       toast.error("Error deleting client");
     }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedClientIds.size === 0) return;
+
+    const confirm = window.confirm(`Are you sure you want to delete ${selectedClientIds.size} clients?`);
+    if (!confirm) return;
+
+    setDeleting(true);
+
+    try {
+      const res = await fetch("/api/employee/clients", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ clientIds: Array.from(selectedClientIds) }),
+      });
+
+      if (!res.ok) throw new Error("Bulk delete failed");
+
+      toast.success(`${selectedClientIds.size} clients deleted.`);
+
+      const remainingClients = clients.filter((c) => !selectedClientIds.has(c.id));
+      setClients(remainingClients);
+      setSelectedClientIds(new Set());
+    } catch (err) {
+      toast.error("Failed to delete selected clients.");
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+
+  const toggleSelectAll = () => {
+    const allFilteredIds = filteredClients.map((c) => c.id);
+    const allSelected = allFilteredIds.every((id) => selectedClientIds.has(id));
+
+    const newSet = new Set(selectedClientIds);
+    if (allSelected) {
+      allFilteredIds.forEach((id) => newSet.delete(id));
+    } else {
+      allFilteredIds.forEach((id) => newSet.add(id));
+    }
+    setSelectedClientIds(newSet);
+  };
+
+
+  const toggleSelectOne = (id: string) => {
+    setSelectedClientIds((prev) => {
+      const newSet = new Set(prev);
+      newSet.has(id) ? newSet.delete(id) : newSet.add(id);
+      return newSet;
+    });
   };
 
   const downloadCSV = () => {
@@ -95,27 +146,19 @@ export default function EmployeeClientsTable({ clients: initialClients }: { clie
     URL.revokeObjectURL(url);
   };
 
-  const MAX_VISIBLE_PAGES = 5;
-
   const getPageNumbers = (): (number | string)[] => {
     const pages: (number | string)[] = [];
+    const MAX_VISIBLE_PAGES = 5;
 
     if (totalPages <= MAX_VISIBLE_PAGES) {
       for (let i = 1; i <= totalPages; i++) pages.push(i);
     } else {
       pages.push(1);
-
       const left = Math.max(currentPage - 1, 2);
       const right = Math.min(currentPage + 1, totalPages - 1);
-
       if (left > 2) pages.push("left-ellipsis");
-
-      for (let i = left; i <= right; i++) {
-        pages.push(i);
-      }
-
+      for (let i = left; i <= right; i++) pages.push(i);
       if (right < totalPages - 1) pages.push("right-ellipsis");
-
       pages.push(totalPages);
     }
 
@@ -130,7 +173,7 @@ export default function EmployeeClientsTable({ clients: initialClients }: { clie
           <h1 className="text-2xl font-semibold text-gray-800">Clients</h1>
           <p className="text-gray-500 text-sm">Assigned clients only</p>
         </div>
-        <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex flex-wrap items-center gap-2">
           <input
             type="text"
             placeholder="Search clients..."
@@ -140,9 +183,23 @@ export default function EmployeeClientsTable({ clients: initialClients }: { clie
           />
           <button
             onClick={downloadCSV}
-            className="px-4 py-2 rounded-md bg-green-600  hover:bg-green-500 transition"
+            className="px-4 py-2 rounded-md bg-green-600 hover:bg-green-500 text-white"
           >
             Download CSV
+          </button>
+          <button
+            onClick={handleBulkDelete}
+            disabled={selectedClientIds.size === 0 || deleting}
+            className="px-4 py-2 rounded-md bg-red-600 hover:bg-red-500 text-white disabled:opacity-50"
+          >
+            {deleting ? "Deleting..." : "Delete Selected"}
+          </button>
+
+          <button
+            className="px-4 py-2 rounded-md bg-yellow-500 text-white cursor-not-allowed opacity-70"
+            title="Bulk edit coming soon"
+          >
+            Bulk Edit
           </button>
         </div>
       </div>
@@ -150,10 +207,18 @@ export default function EmployeeClientsTable({ clients: initialClients }: { clie
       {/* Table */}
       {paginatedClients.length > 0 ? (
         <>
-          <div className=" rounded-lg shadow-sm border overflow-x-auto">
-            <table className="w-full border-collapse min-w-[600px]">
+          <div className="rounded-lg shadow-sm border overflow-x-auto">
+            <table className="w-full border-collapse min-w-[700px]">
               <thead className="bg-gray-50 border-b sticky top-0">
                 <tr>
+                  <th className="px-4 py-3 text-left text-sm text-gray-600">
+                    <input
+                      type="checkbox"
+                      checked={filteredClients.length > 0 && filteredClients.every((c) => selectedClientIds.has(c.id))}
+                      onChange={toggleSelectAll}
+                    />
+
+                  </th>
                   <th className="text-left px-4 py-3 text-sm font-medium text-gray-600">Name</th>
                   <th className="text-left px-4 py-3 text-sm font-medium text-gray-600">Phone</th>
                   <th className="text-left px-4 py-3 text-sm font-medium text-gray-600">Status</th>
@@ -167,6 +232,16 @@ export default function EmployeeClientsTable({ clients: initialClients }: { clie
                     onClick={() => router.push(`/employee/clients/${c.id}`)}
                     className="hover:bg-gray-50 cursor-pointer transition-colors border-b last:border-0"
                   >
+                    <td
+                      onClick={(e) => e.stopPropagation()}
+                      className="px-4 py-3"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selectedClientIds.has(c.id)}
+                        onChange={() => toggleSelectOne(c.id)}
+                      />
+                    </td>
                     <td className="px-4 py-3">{c.name || "N/A"}</td>
                     <td className="px-4 py-3">{c.phone || "N/A"}</td>
                     <td className="px-4 py-3">
@@ -191,11 +266,10 @@ export default function EmployeeClientsTable({ clients: initialClients }: { clie
             <button
               onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
               disabled={currentPage === 1}
-              className="px-3 py-1 rounded border text-sm  disabled:opacity-50"
+              className="px-3 py-1 rounded border text-sm disabled:opacity-50"
             >
               Prev
             </button>
-
             {getPageNumbers().map((page, idx) => {
               if (page === "left-ellipsis" || page === "right-ellipsis") {
                 return (
@@ -204,24 +278,21 @@ export default function EmployeeClientsTable({ clients: initialClients }: { clie
                   </span>
                 );
               }
-
               return (
                 <button
                   key={page}
                   onClick={() => setCurrentPage(Number(page))}
-                  className={`px-3 py-1 rounded border text-sm ${
-                    currentPage === page ? "bg-blue-600 " : ""
-                  }`}
+                  className={`px-3 py-1 rounded border text-sm ${currentPage === page ? "bg-blue-600 text-white" : ""
+                    }`}
                 >
                   {page}
                 </button>
               );
             })}
-
             <button
               onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
               disabled={currentPage === totalPages}
-              className="px-3 py-1 rounded border text-sm  disabled:opacity-50"
+              className="px-3 py-1 rounded border text-sm disabled:opacity-50"
             >
               Next
             </button>

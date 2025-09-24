@@ -12,6 +12,8 @@ export default function AdminClientsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkStatus, setBulkStatus] = useState<string>("");
   const itemsPerPage = 10;
 
   const router = useRouter();
@@ -24,8 +26,9 @@ export default function AdminClientsPage() {
       if (!res.ok) throw new Error(`Failed to fetch clients: ${res.statusText}`);
       const data: Client[] = await res.json();
       setClients(data);
-      console.log("Fetched clients:", data);
       setFilteredClients(data);
+      setSelectedIds(new Set());
+      setBulkStatus("");
     } catch (err) {
       setError((err as Error).message || "Something went wrong.");
     } finally {
@@ -45,13 +48,15 @@ export default function AdminClientsPage() {
       const lower = search.toLowerCase();
       setFilteredClients(
         clients.filter((c) =>
-          [c.name ?? "", c.phone ?? "", c.status ?? "",c.assignedEmployee?.name ?? ""].some((field) =>
+          [c.name ?? "", c.phone ?? "", c.status ?? "", c.assignedEmployee?.name ?? ""].some((field) =>
             field.toLowerCase().includes(lower)
           )
         )
       );
     }
     setCurrentPage(1); // Reset page on filter
+    setSelectedIds(new Set()); // Reset selection on search change
+    setBulkStatus("");
   }, [search, clients]);
 
   const getStatusColor = (status?: string) => {
@@ -72,7 +77,7 @@ export default function AdminClientsPage() {
   };
 
   const downloadCSV = () => {
-    const headers = ["Name", "Phone","Assigned Employee", "Status"];
+    const headers = ["Name", "Phone", "Assigned Employee", "Status"];
     const rows = filteredClients.map((c) => [
       c.name || "",
       c.phone || "",
@@ -139,10 +144,81 @@ export default function AdminClientsPage() {
     return pages;
   };
 
+  // Bulk select handlers
+const isAllSelected = filteredClients.every((c) => selectedIds.has(c.id));
+
+const toggleSelectAll = () => {
+  if (isAllSelected) {
+    // Unselect all filtered clients
+    const newSelected = new Set(selectedIds);
+    filteredClients.forEach((c) => newSelected.delete(c.id));
+    setSelectedIds(newSelected);
+  } else {
+    // Select all filtered clients
+    const newSelected = new Set(selectedIds);
+    filteredClients.forEach((c) => newSelected.add(c.id));
+    setSelectedIds(newSelected);
+  }
+};
+
+  const toggleSelectOne = (id: string) => {
+    const newSelected = new Set(selectedIds);
+    if (newSelected.has(id)) {
+      newSelected.delete(id);
+    } else {
+      newSelected.add(id);
+    }
+    setSelectedIds(newSelected);
+  };
+
+  // Bulk Delete
+  const bulkDelete = async () => {
+    if (selectedIds.size === 0) return;
+    if (!confirm(`Delete ${selectedIds.size} selected clients? This action cannot be undone.`)) return;
+
+    try {
+      setLoading(true);
+      const res = await fetch("/api/admin/clients/bulk-delete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids: Array.from(selectedIds) }),
+      });
+      if (!res.ok) throw new Error("Failed to delete clients");
+      await fetchClients();
+      setSelectedIds(new Set());
+    } catch (err) {
+      alert((err as Error).message || "Error deleting clients");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Bulk Update Status
+  const bulkUpdateStatus = async () => {
+    if (selectedIds.size === 0 || !bulkStatus) return;
+
+    try {
+      setLoading(true);
+      const res = await fetch("/api/admin/clients/bulk-update-status", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids: Array.from(selectedIds), status: bulkStatus }),
+      });
+      if (!res.ok) throw new Error("Failed to update clients status");
+      await fetchClients();
+      setSelectedIds(new Set());
+      setBulkStatus("");
+    } catch (err) {
+      alert((err as Error).message || "Error updating status");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="p-4 sm:p-6 max-w-7xl mx-auto">
       {/* Toolbar */}
-      <div className=" shadow-sm border rounded-lg p-4 mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+      <div className="shadow-sm border rounded-lg p-4 mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold text-gray-800">Clients</h1>
           <p className="text-gray-500 text-sm">Manage and monitor all registered clients</p>
@@ -157,18 +233,55 @@ export default function AdminClientsPage() {
           />
           <button
             onClick={fetchClients}
-            className="px-4 py-2 rounded-md bg-blue-600  hover:bg-blue-500 transition"
+            className="px-4 py-2 rounded-md bg-blue-600 hover:bg-blue-500 transition"
           >
             Refresh
           </button>
           <button
             onClick={downloadCSV}
-            className="px-4 py-2 rounded-md bg-green-600  hover:bg-green-500 transition"
+            className="px-4 py-2 rounded-md bg-green-600 hover:bg-green-500 transition"
           >
             Download CSV
           </button>
         </div>
       </div>
+
+      {/* Bulk actions toolbar */}
+      {selectedIds.size > 0 && (
+        <div className="mb-4 flex flex-wrap gap-2 items-center border rounded p-3 bg-gray-50">
+          <span className="font-medium text-gray-700">
+            {selectedIds.size} client{selectedIds.size > 1 ? "s" : ""} selected
+          </span>
+
+          <button
+            onClick={bulkDelete}
+            className="px-3 py-1 rounded bg-red-600 text-white hover:bg-red-500 transition"
+          >
+            Delete Selected
+          </button>
+
+          <select
+            className="border border-gray-300 rounded px-2 py-1 text-sm"
+            value={bulkStatus}
+            onChange={(e) => setBulkStatus(e.target.value)}
+          >
+            <option value="">Change Status...</option>
+            <option value="hot">Hot</option>
+            <option value="prospect">Prospect</option>
+            <option value="followup">Followup</option>
+            <option value="cold">Cold</option>
+            <option value="success">Success</option>
+          </select>
+
+          <button
+            onClick={bulkUpdateStatus}
+            disabled={!bulkStatus}
+            className={`px-3 py-1 rounded bg-blue-600 text-white hover:bg-blue-500 transition disabled:opacity-50`}
+          >
+            Apply Status
+          </button>
+        </div>
+      )}
 
       {/* Loading */}
       {loading && (
@@ -196,10 +309,18 @@ export default function AdminClientsPage() {
       {/* Data Table */}
       {!loading && !error && paginatedClients.length > 0 && (
         <>
-          <div className=" rounded-lg shadow-sm border overflow-x-auto">
+          <div className="rounded-lg shadow-sm border overflow-x-auto">
             <table className="w-full border-collapse min-w-[600px]">
               <thead className="bg-gray-50 border-b sticky top-0">
                 <tr>
+                  <th className="px-4 py-3 text-sm font-medium text-gray-600">
+                    <input
+                      type="checkbox"
+                      checked={isAllSelected}
+                      onChange={toggleSelectAll}
+                      aria-label="Select all clients on page"
+                    />
+                  </th>
                   <th className="text-left px-4 py-3 text-sm font-medium text-gray-600">Name</th>
                   <th className="text-left px-4 py-3 text-sm font-medium text-gray-600">Assigned Employee</th>
                   <th className="text-left px-4 py-3 text-sm font-medium text-gray-600">Phone</th>
@@ -209,14 +330,40 @@ export default function AdminClientsPage() {
               <tbody>
                 {paginatedClients.map((c, idx) => (
                   <tr
-                    onClick={() => router.push(`clients/${c.id}`)}
-                    key={idx}
+                    key={c.id}
                     className="hover:bg-gray-600 cursor-pointer transition-colors border-b last:border-0"
                   >
-                    <td className="px-4 py-3">{c.name || "N/A"}</td>
-                    <td className="px-4 py-3">{c?.assignedEmployee?.name || "N/A"}</td>
-                    <td className="px-4 py-3">{c.phone || "N/A"}</td>
                     <td className="px-4 py-3">
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.has(c.id)}
+                        onChange={() => toggleSelectOne(c.id)}
+                        onClick={e => e.stopPropagation()}
+                        aria-label={`Select client ${c.name}`}
+                      />
+                    </td>
+                    <td
+                      className="px-4 py-3"
+                      onClick={() => router.push(`clients/${c.id}`)}
+                    >
+                      {c.name || "N/A"}
+                    </td>
+                    <td
+                      className="px-4 py-3"
+                      onClick={() => router.push(`clients/${c.id}`)}
+                    >
+                      {c?.assignedEmployee?.name || "N/A"}
+                    </td>
+                    <td
+                      className="px-4 py-3"
+                      onClick={() => router.push(`clients/${c.id}`)}
+                    >
+                      {c.phone || "N/A"}
+                    </td>
+                    <td
+                      className="px-4 py-3"
+                      onClick={() => router.push(`clients/${c.id}`)}
+                    >
                       <span
                         className={cn(
                           "px-2 py-1 rounded-full text-xs font-medium",
@@ -237,7 +384,7 @@ export default function AdminClientsPage() {
             <button
               onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
               disabled={currentPage === 1}
-              className="px-3 py-1 rounded border text-sm  disabled:opacity-50"
+              className="px-3 py-1 rounded border text-sm disabled:opacity-50"
             >
               Prev
             </button>
@@ -256,7 +403,7 @@ export default function AdminClientsPage() {
                   key={page}
                   onClick={() => setCurrentPage(Number(page))}
                   className={`px-3 py-1 rounded border text-sm ${
-                    currentPage === page ? "bg-blue-600 " : ""
+                    currentPage === page ? "bg-blue-600 text-white" : ""
                   }`}
                 >
                   {page}
@@ -267,7 +414,7 @@ export default function AdminClientsPage() {
             <button
               onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
               disabled={currentPage === totalPages}
-              className="px-3 py-1 rounded border text-sm  disabled:opacity-50"
+              className="px-3 py-1 rounded border text-sm disabled:opacity-50"
             >
               Next
             </button>

@@ -5,6 +5,7 @@ import PerformanceChart from "./PerformanceChart";
 import { Status } from "@prisma/client";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card } from "@/components/ui/card";
+import UploadClientsComponent from "@/components/UploadClientsComponent";
 
 type Client = {
   id: string;
@@ -171,6 +172,12 @@ export default async function EmployeePage({ params }: Props) {
         ) : (
           <p className="text-gray-400">No clients assigned.</p>
         )}
+      </Card>
+
+      <Card className="p-4">
+        
+        <UploadClientsComponent employeeId={employee.id}/>
+
       </Card>
 
       {/* Performance Chart */}

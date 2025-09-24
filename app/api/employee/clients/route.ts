@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import prisma from "@/lib/prisma"; // Import Status enum
 import { Status } from "@prisma/client";
@@ -119,6 +119,56 @@ export async function POST(req: Request) {
     console.error("[CLIENT_POST]", err);
     const message = err instanceof Error ? err.message : "Server error";
     return NextResponse.json({ message }, { status: 500 });
+  }
+}
+
+export async function DELETE(req: NextRequest) {
+  const { userId } = await auth();
+  if (!userId) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+
+  const user = await prisma.user.findUnique({
+    where: { clerkId: userId },
+    select: { id: true, role: true },
+  });
+
+  if (!user || user.role !== "EMPLOYEE") {
+    return NextResponse.json({ message: "Forbidden" }, { status: 403 });
+  }
+
+  try {
+    const body = await req.json();
+    const clientIds: string[] = body.clientIds;
+
+    if (!Array.isArray(clientIds) || clientIds.length === 0) {
+      return NextResponse.json({ message: "No client IDs provided" }, { status: 400 });
+    }
+
+    const deletableClients = await prisma.client.findMany({
+      where: {
+        id: { in: clientIds },
+        assignedEmployeeId: user.id,
+      },
+      select: { id: true },
+    });
+
+    const deletableIds = deletableClients.map((c) => c.id);
+
+    if (deletableIds.length === 0) {
+      return NextResponse.json({ message: "No valid clients to delete" }, { status: 404 });
+    }
+
+    await prisma.document.deleteMany({
+      where: { clientId: { in: deletableIds } },
+    });
+
+    await prisma.client.deleteMany({
+      where: { id: { in: deletableIds } },
+    });
+
+    return NextResponse.json({ message: `${deletableIds.length} client(s) deleted successfully` });
+  } catch (err) {
+    console.error("[BULK_DELETE_ERROR]", err);
+    return NextResponse.json({ message: "Server error" }, { status: 500 });
   }
 }
 
