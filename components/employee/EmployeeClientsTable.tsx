@@ -230,7 +230,7 @@ export default function EmployeeClientsTable({ clients: initialClients }: { clie
                   <tr
                     key={c.id}
                     onClick={() => router.push(`/employee/clients/${c.id}`)}
-                    className="hover:bg-gray-50 cursor-pointer transition-colors border-b last:border-0"
+                    className="hover:bg-gray-50 hover:text-black cursor-pointer transition-colors border-b last:border-0"
                   >
                     <td
                       onClick={(e) => e.stopPropagation()}
