@@ -18,13 +18,15 @@ const updateClientSchema = z.object({
 
 export async function PUT(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
     const { userId } = await auth();
     if (!userId) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
+
+    const params = await context.params;
 
     // Verify admin role
     const admin = await prisma.user.findUnique({

@@ -3,14 +3,16 @@ import { auth } from "@clerk/nextjs/server";
 import prisma from "@/lib/prisma";
 
 export async function DELETE(
-  req: NextRequest,
-  { params }: { params: { id: string; docId: string } }
+  request: NextRequest,
+  context: { params: Promise<{ id: string; docId: string }> }
 ) {
   try {
     const { userId } = await auth();
     if (!userId) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
+
+    const params = await context.params;
 
     // Verify admin role
     const admin = await prisma.user.findUnique({
