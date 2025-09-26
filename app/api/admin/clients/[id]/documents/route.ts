@@ -4,9 +4,10 @@ import prisma from "@/lib/prisma";
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const { userId } = await auth();
     if (!userId) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
@@ -24,7 +25,7 @@ export async function POST(
 
     // Get client
     const client = await prisma.client.findUnique({
-      where: { id: params.id },
+      where: { id },
     });
 
     if (!client) {
