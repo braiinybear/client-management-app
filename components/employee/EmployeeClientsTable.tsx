@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useMemo, useEffect } from "react";
+import { BulkEditClientsModal, BulkEditFields } from "./BulkEditClientsModal";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -11,6 +12,10 @@ export interface Client {
   name: string | null;
   phone: string | null;
   status: string | null;
+  courseFee?: number | null;
+  courseFeePaid?: number | null;
+  hostelFee?: number | null;
+  hostelFeePaid?: number | null;
 }
 
 export default function EmployeeClientsTable({ clients: initialClients }: { clients: Client[] }) {
@@ -21,6 +26,17 @@ export default function EmployeeClientsTable({ clients: initialClients }: { clie
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
   const router = useRouter();
+
+  // Bulk edit modal state
+  const [bulkEditOpen, setBulkEditOpen] = useState(false);
+  const [bulkEditFields, setBulkEditFields] = useState<BulkEditFields>({
+    status: "",
+    courseFee: "",
+    courseFeePaid: "",
+    hostelFee: "",
+    hostelFeePaid: ""
+  });
+  const [bulkEditLoading, setBulkEditLoading] = useState(false);
 
   const filteredClients = useMemo(() => {
     if (!search.trim()) return clients;
@@ -80,23 +96,17 @@ export default function EmployeeClientsTable({ clients: initialClients }: { clie
 
   const handleBulkDelete = async () => {
     if (selectedClientIds.size === 0) return;
-
     const confirm = window.confirm(`Are you sure you want to delete ${selectedClientIds.size} clients?`);
     if (!confirm) return;
-
     setDeleting(true);
-
     try {
       const res = await fetch("/api/employee/clients", {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ clientIds: Array.from(selectedClientIds) }),
       });
-
       if (!res.ok) throw new Error("Bulk delete failed");
-
       toast.success(`${selectedClientIds.size} clients deleted.`);
-
       const remainingClients = clients.filter((c) => !selectedClientIds.has(c.id));
       setClients(remainingClients);
       setSelectedClientIds(new Set());
@@ -107,11 +117,9 @@ export default function EmployeeClientsTable({ clients: initialClients }: { clie
     }
   };
 
-
   const toggleSelectAll = () => {
     const allFilteredIds = filteredClients.map((c) => c.id);
     const allSelected = allFilteredIds.every((id) => selectedClientIds.has(id));
-
     const newSet = new Set(selectedClientIds);
     if (allSelected) {
       allFilteredIds.forEach((id) => newSet.delete(id));
@@ -120,7 +128,6 @@ export default function EmployeeClientsTable({ clients: initialClients }: { clie
     }
     setSelectedClientIds(newSet);
   };
-
 
   const toggleSelectOne = (id: string) => {
     setSelectedClientIds((prev) => {
@@ -136,7 +143,6 @@ export default function EmployeeClientsTable({ clients: initialClients }: { clie
     const csvContent = [headers, ...rows]
       .map((row) => row.map((field) => `"${String(field).replace(/"/g, '""')}"`).join(","))
       .join("\n");
-
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -144,6 +150,21 @@ export default function EmployeeClientsTable({ clients: initialClients }: { clie
     a.download = "clients.csv";
     a.click();
     URL.revokeObjectURL(url);
+  };
+
+  const handleBulkEditOpen = () => {
+    if (selectedClientIds.size === 0) return;
+    setBulkEditOpen(true);
+  };
+
+  const handleBulkEditFieldChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setBulkEditFields((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleBulkEditClose = () => {
+    setBulkEditOpen(false);
+    setBulkEditFields({ status: "", courseFee: "", courseFeePaid: "", hostelFee: "", hostelFeePaid: "" });
   };
 
   const getPageNumbers = (): (number | string)[] => {
@@ -165,10 +186,45 @@ export default function EmployeeClientsTable({ clients: initialClients }: { clie
     return pages;
   };
 
+  const handleBulkEditSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setBulkEditLoading(true);
+    try {
+      const payload: any = { clientIds: Array.from(selectedClientIds) };
+      Object.entries(bulkEditFields).forEach(([key, value]) => {
+        if (value !== "") payload[key] = value;
+      });
+      const res = await fetch("/api/employee/clients/bulk-update-status", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) throw new Error("Bulk edit failed");
+      toast.success("Clients updated successfully.");
+      setClients((prevClients) =>
+        prevClients.map((c) =>
+          selectedClientIds.has(c.id)
+            ? {
+                ...c,
+                ...Object.fromEntries(
+                  Object.entries(bulkEditFields).filter(([_, v]) => v !== "")
+                ),
+              }
+            : c
+        )
+      );
+      handleBulkEditClose();
+    } catch (err) {
+      toast.error("Bulk edit failed.");
+    } finally {
+      setBulkEditLoading(false);
+    }
+  };
+
   return (
     <div className="p-4 sm:p-6 max-w-7xl mx-auto">
       {/* Header */}
-      <div className=" shadow-sm border rounded-lg p-4 mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+      <div className="shadow-sm border rounded-lg p-4 mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold text-gray-800">Clients</h1>
           <p className="text-gray-500 text-sm">Assigned clients only</p>
@@ -194,15 +250,26 @@ export default function EmployeeClientsTable({ clients: initialClients }: { clie
           >
             {deleting ? "Deleting..." : "Delete Selected"}
           </button>
-
           <button
-            className="px-4 py-2 rounded-md bg-yellow-500 text-white cursor-not-allowed opacity-70"
-            title="Bulk edit coming soon"
+            className={`px-4 py-2 rounded-md bg-yellow-500 text-white ${selectedClientIds.size === 0 ? "cursor-not-allowed opacity-70" : "hover:bg-yellow-400"}`}
+            title={selectedClientIds.size === 0 ? "Select clients to bulk edit" : "Bulk Edit"}
+            onClick={handleBulkEditOpen}
+            disabled={selectedClientIds.size === 0}
           >
             Bulk Edit
           </button>
         </div>
       </div>
+
+      {/* Bulk Edit Modal */}
+      <BulkEditClientsModal
+        open={bulkEditOpen}
+        loading={bulkEditLoading}
+        fields={bulkEditFields}
+        onChange={handleBulkEditFieldChange}
+        onClose={handleBulkEditClose}
+        onSubmit={handleBulkEditSubmit}
+      />
 
       {/* Table */}
       {paginatedClients.length > 0 ? (
@@ -217,7 +284,6 @@ export default function EmployeeClientsTable({ clients: initialClients }: { clie
                       checked={filteredClients.length > 0 && filteredClients.every((c) => selectedClientIds.has(c.id))}
                       onChange={toggleSelectAll}
                     />
-
                   </th>
                   <th className="text-left px-4 py-3 text-sm font-medium text-gray-600">Name</th>
                   <th className="text-left px-4 py-3 text-sm font-medium text-gray-600">Phone</th>
@@ -226,10 +292,10 @@ export default function EmployeeClientsTable({ clients: initialClients }: { clie
                 </tr>
               </thead>
               <tbody>
-                {paginatedClients.map((c) => (
+                {paginatedClients.map((client) => (
                   <tr
-                    key={c.id}
-                    onClick={() => router.push(`/employee/clients/${c.id}`)}
+                    key={client.id}
+                    onClick={() => router.push(`/employee/clients/${client.id}`)}
                     className="hover:bg-gray-50 hover:text-black cursor-pointer transition-colors border-b last:border-0"
                   >
                     <td
@@ -238,22 +304,22 @@ export default function EmployeeClientsTable({ clients: initialClients }: { clie
                     >
                       <input
                         type="checkbox"
-                        checked={selectedClientIds.has(c.id)}
-                        onChange={() => toggleSelectOne(c.id)}
+                        checked={selectedClientIds.has(client.id)}
+                        onChange={() => toggleSelectOne(client.id)}
                       />
                     </td>
-                    <td className="px-4 py-3">{c.name || "N/A"}</td>
-                    <td className="px-4 py-3">{c.phone || "N/A"}</td>
+                    <td className="px-4 py-3">{client.name || "N/A"}</td>
+                    <td className="px-4 py-3">{client.phone || "N/A"}</td>
                     <td className="px-4 py-3">
-                      <span className={cn("px-2 py-1 rounded-full text-xs font-medium", getStatusColor(c.status))}>
-                        {c.status || "Unknown"}
+                      <span className={cn("px-2 py-1 rounded-full text-xs font-medium", getStatusColor(client.status))}>
+                        {client.status || "Unknown"}
                       </span>
                     </td>
                     <td
                       onClick={(e) => e.stopPropagation()}
                       className="px-4 py-3"
                     >
-                      <DeleteDialog onConfirm={() => handleDelete(c.id)} />
+                      <DeleteDialog onConfirm={() => handleDelete(client.id)} />
                     </td>
                   </tr>
                 ))}
@@ -282,8 +348,7 @@ export default function EmployeeClientsTable({ clients: initialClients }: { clie
                 <button
                   key={page}
                   onClick={() => setCurrentPage(Number(page))}
-                  className={`px-3 py-1 rounded border text-sm ${currentPage === page ? "bg-blue-600 text-white" : ""
-                    }`}
+                  className={`px-3 py-1 rounded border text-sm ${currentPage === page ? "bg-blue-600 text-white" : ""}`}
                 >
                   {page}
                 </button>

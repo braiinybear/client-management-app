@@ -819,26 +819,8 @@ const handleSaveSection = async (section: "details" | "fees" | "notes") => {
             </div>
           ))}
 
-          {/* Read-only totalFee */}
-          <div>
-            <label
-              htmlFor="totalFee"
-              className="block font-medium mb-1"
-              title="Automatically calculated from Hostel Fee + Course Fee"
-            >
-              Total Fee
-            </label>
-            <p
-              id="totalFee"
-              className="px-3 py-2 bg-gray-100 dark:bg-gray-800 rounded select-text truncate max-w-full cursor-default"
-              aria-readonly="true"
-            >
-              {formData.totalFee || "0.00"}
-            </p>
-          </div>
-
           {/* Other fees inputs: courseFeePaid, hostelFeePaid,*/}
-          {["courseFeePaid", "hostelFeePaid"].map((id) => (
+          {[ "hostelFeePaid","courseFeePaid"].map((id) => (
             <div key={id}>
               <label htmlFor={id} className="block font-medium mb-1">
                 {id === "courseFeePaid"
@@ -865,6 +847,25 @@ const handleSaveSection = async (section: "details" | "fees" | "notes") => {
               )}
             </div>
           ))}
+
+
+                    {/* Read-only totalFee */}
+          <div>
+            <label
+              htmlFor="totalFee"
+              className="block font-medium mb-1"
+              title="Automatically calculated from Hostel Fee + Course Fee"
+            >
+              Total Fee
+            </label>
+            <p
+              id="totalFee"
+              className="px-3 py-2 bg-gray-100 dark:bg-gray-800 rounded select-text truncate max-w-full cursor-default"
+              aria-readonly="true"
+            >
+              {formData.totalFee || "0.00"}
+            </p>
+          </div>
 
             {/* Read-only totalFeePaid */}
               <div>
