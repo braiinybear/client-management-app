@@ -4,6 +4,8 @@ import React, { useEffect, useState } from "react";
 import { Client } from "../columns";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
+import { Status } from "@prisma/client";
+import BulkEditClientsModal from "@/components/admin/BulkEditClientsModal";
 
 export default function AdminClientsPage() {
   const [clients, setClients] = useState<Client[]>([]);
@@ -13,7 +15,7 @@ export default function AdminClientsPage() {
   const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [bulkStatus, setBulkStatus] = useState<string>("");
+  const [showBulkEditModal, setShowBulkEditModal] = useState(false);
   const itemsPerPage = 10;
 
   const router = useRouter();
@@ -28,7 +30,6 @@ export default function AdminClientsPage() {
       setClients(data);
       setFilteredClients(data);
       setSelectedIds(new Set());
-      setBulkStatus("");
     } catch (err) {
       setError((err as Error).message || "Something went wrong.");
     } finally {
@@ -56,7 +57,7 @@ export default function AdminClientsPage() {
     }
     setCurrentPage(1); // Reset page on filter
     setSelectedIds(new Set()); // Reset selection on search change
-    setBulkStatus("");
+    setShowBulkEditModal(false); // Close modal if open
   }, [search, clients]);
 
   const getStatusColor = (status?: string) => {
@@ -194,24 +195,37 @@ const toggleSelectAll = () => {
   };
 
   // Bulk Update Status
-  const bulkUpdateStatus = async () => {
-    if (selectedIds.size === 0 || !bulkStatus) return;
-
+  const bulkUpdateClients = async (fields: {
+    status: Status;
+    courseFee: string;
+    courseFeePaid: string;
+    hostelFee: string;
+    hostelFeePaid: string;
+  }) => {
     try {
-      setLoading(true);
+      // Only include fields that have values
+      const updateData: any = {
+        ids: Array.from(selectedIds),
+        status: fields.status,
+      };
+
+      if (fields.courseFee) updateData.courseFee = fields.courseFee;
+      if (fields.courseFeePaid) updateData.courseFeePaid = fields.courseFeePaid;
+      if (fields.hostelFee) updateData.hostelFee = fields.hostelFee;
+      if (fields.hostelFeePaid) updateData.hostelFeePaid = fields.hostelFeePaid;
+
       const res = await fetch("/api/admin/clients/bulk-update-status", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ids: Array.from(selectedIds), status: bulkStatus }),
+        body: JSON.stringify(updateData),
       });
-      if (!res.ok) throw new Error("Failed to update clients status");
+      
+      if (!res.ok) throw new Error("Failed to update clients");
+      
       await fetchClients();
       setSelectedIds(new Set());
-      setBulkStatus("");
     } catch (err) {
-      alert((err as Error).message || "Error updating status");
-    } finally {
-      setLoading(false);
+      throw new Error((err as Error).message || "Error updating clients");
     }
   };
 
@@ -260,25 +274,11 @@ const toggleSelectAll = () => {
             Delete Selected
           </button>
 
-          <select
-            className="border border-gray-300 rounded px-2 py-1 text-sm"
-            value={bulkStatus}
-            onChange={(e) => setBulkStatus(e.target.value)}
-          >
-            <option value="">Change Status...</option>
-            <option value="hot">Hot</option>
-            <option value="prospect">Prospect</option>
-            <option value="followup">Followup</option>
-            <option value="cold">Cold</option>
-            <option value="success">Success</option>
-          </select>
-
           <button
-            onClick={bulkUpdateStatus}
-            disabled={!bulkStatus}
-            className={`px-3 py-1 rounded bg-blue-600 text-white hover:bg-blue-500 transition disabled:opacity-50`}
+            onClick={() => setShowBulkEditModal(true)}
+            className="px-3 py-1 rounded bg-blue-600 text-white hover:bg-blue-500 transition"
           >
-            Apply Status
+            Edit Selected
           </button>
         </div>
       )}
@@ -426,6 +426,14 @@ const toggleSelectAll = () => {
       {!loading && !error && filteredClients.length === 0 && (
         <div className="text-center py-20 text-gray-500">No matching clients found.</div>
       )}
+
+      {/* Bulk Edit Modal */}
+      <BulkEditClientsModal 
+        open={showBulkEditModal}
+        onClose={() => setShowBulkEditModal(false)}
+        selectedCount={selectedIds.size}
+        onConfirm={bulkUpdateClients}
+      />
     </div>
   );
 }

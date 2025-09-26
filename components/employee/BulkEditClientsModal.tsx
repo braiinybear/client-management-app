@@ -44,7 +44,7 @@ export const BulkEditClientsModal: React.FC<BulkEditClientsModalProps> = ({
               name="status"
               value={fields.status}
               onChange={onChange}
-              className="w-full border rounded px-3 py-2"
+              className="w-full border rounded px-3 py-2 bg-black text-white"
               disabled={loading}
             >
               <option value="">-- Select Status --</option>
