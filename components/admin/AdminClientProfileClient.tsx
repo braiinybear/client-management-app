@@ -127,7 +127,7 @@ export default function AdminClientProfileClient({ client: initialClient }: Prop
       
       setDetailsEditable(false);
       toast.success("Client details updated successfully");
-    } catch (error) {
+    } catch (_error) {
       toast.error("Failed to update client details");
     } finally {
       setSaving(false);
@@ -152,7 +152,7 @@ export default function AdminClientProfileClient({ client: initialClient }: Prop
       
       setNotesEditable(false);
       toast.success("Notes updated successfully");
-    } catch (error) {
+    } catch (_error) {
       toast.error("Failed to update notes");
     } finally {
       setSaving(false);
@@ -184,7 +184,7 @@ export default function AdminClientProfileClient({ client: initialClient }: Prop
       
       setFeesEditable(false);
       toast.success("Fees updated successfully");
-    } catch (error) {
+    } catch (_error) {
       toast.error("Failed to update fees");
     } finally {
       setSaving(false);
@@ -232,7 +232,7 @@ export default function AdminClientProfileClient({ client: initialClient }: Prop
       }));
 
       toast.success("Document uploaded successfully");
-    } catch (error) {
+    } catch (_error) {
       toast.error("Failed to upload document");
     } finally {
       setUploadingDoc(false);
@@ -254,7 +254,7 @@ export default function AdminClientProfileClient({ client: initialClient }: Prop
       }));
 
       toast.success("Document deleted successfully");
-    } catch (error) {
+    } catch (_error) {
       toast.error("Failed to delete document");
     }
   };
@@ -269,7 +269,7 @@ export default function AdminClientProfileClient({ client: initialClient }: Prop
 
       toast.success("Client deleted successfully");
       router.push("/admin/clients");
-    } catch (error) {
+    } catch (_error) {
       toast.error("Failed to delete client");
     }
   };

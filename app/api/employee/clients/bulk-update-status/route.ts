@@ -2,6 +2,16 @@ import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { auth } from "@clerk/nextjs/server";
 import { Status } from "@prisma/client";
+import { z } from "zod";
+
+const updateSchema = z.object({
+  clientIds: z.array(z.string()).min(1),
+  status: z.nativeEnum(Status).optional(),
+  courseFee: z.string().optional(),
+  courseFeePaid: z.string().optional(),
+  hostelFee: z.string().optional(),
+  hostelFeePaid: z.string().optional(),
+});
 
 export async function POST(request: NextRequest) {
   try {
@@ -20,23 +30,30 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
 
-    // Get request body
+    // Validate request body
     const body = await request.json();
-    const { clientIds, status, courseFee, courseFeePaid, hostelFee, hostelFeePaid } = body;
+    const validationResult = updateSchema.safeParse(body);
 
-    if (!clientIds || !Array.isArray(clientIds) || clientIds.length === 0) {
-      return NextResponse.json({ message: "Missing or invalid client IDs" }, { status: 400 });
+    if (!validationResult.success) {
+      return NextResponse.json(
+        { message: "Invalid request data", errors: validationResult.error.format() },
+        { status: 400 }
+      );
     }
 
+    const { clientIds, status, courseFee, courseFeePaid, hostelFee, hostelFeePaid } = validationResult.data;
+
     // Build update data
-    const updateData: any = {};
+    const updateData: Partial<{
+      status: Status;
+      courseFee: number;
+      courseFeePaid: number;
+      hostelFee: number;
+      hostelFeePaid: number;
+    }> = {};
     
     if (status) {
-      const upperStatus = status.toUpperCase();
-      if (!(upperStatus in Status)) {
-        return NextResponse.json({ message: "Invalid status value" }, { status: 400 });
-      }
-      updateData.status = Status[upperStatus as keyof typeof Status];
+      updateData.status = status;
     }
 
     if (courseFee !== undefined && courseFee !== "") {
@@ -58,7 +75,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Update clients
-    const result = await prisma.client.updateMany({
+    const updateResult = await prisma.client.updateMany({
       where: {
         id: { in: clientIds },
         assignedEmployeeId: employee.id, // Only update clients assigned to this employee
@@ -67,7 +84,7 @@ export async function POST(request: NextRequest) {
     });
 
     return NextResponse.json({
-      message: `Updated ${result.count} clients successfully.`,
+      message: `Updated ${updateResult.count} clients successfully.`,
     });
   } catch (error) {
     console.error("[BULK_UPDATE_ERROR]", error);

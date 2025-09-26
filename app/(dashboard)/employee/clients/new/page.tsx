@@ -53,12 +53,12 @@ export default function NewClientPage() {
   useEffect(() => {
     const total = ((parseFloat(formData.hostelFee) || 0) + (parseFloat(formData.courseFee) || 0)).toFixed(2);
     if (total !== formData.totalFee) setFormData((p) => ({ ...p, totalFee: total }));
-  }, [formData.hostelFee, formData.courseFee]);
+  }, [formData.hostelFee, formData.courseFee, formData.totalFee]);
 
   useEffect(() => {
     const totalPaid = ((parseFloat(formData.hostelFeePaid) || 0) + (parseFloat(formData.courseFeePaid) || 0)).toFixed(2);
     if (totalPaid !== formData.totalFeePaid) setFormData((p) => ({ ...p, totalFeePaid: totalPaid }));
-  }, [formData.hostelFeePaid, formData.courseFeePaid]);
+  }, [formData.hostelFeePaid, formData.courseFeePaid, formData.totalFeePaid]);
 
   useEffect(() => {
     if (success) {

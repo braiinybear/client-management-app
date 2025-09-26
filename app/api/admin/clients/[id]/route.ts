@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { auth } from "@clerk/nextjs/server";
-import { Status } from "@prisma/client";
 import { z } from "zod";
 
 const updateClientSchema = z.object({

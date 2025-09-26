@@ -1,29 +1,29 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-import prisma from "@/lib/prisma"; // Import Status enum
-import { Status } from "@prisma/client";
+import prisma from "@/lib/prisma";
+import { Status, CallResponse } from "@prisma/client";
+import { z } from "zod";
 
+const documentSchema = z.object({
+  name: z.string(),
+  url: z.string().url()
+});
 
-type DocumentInput = {
-  name: string;
-  url: string;
-};
-
-type ClientInput = {
-  name?: string;
-  phone?: string;
-  status?: Status; // Enum from @prisma/client
-  callResponse?: string | null;
-  notes?: string | null;
-  course?: string | null;
-  hostelFee?: number | null;
-  courseFee?: number | null;
-  totalFee?: number | null;
-  courseFeePaid?: number | null;
-  hostelFeePaid?: number | null;
-  totalFeePaid?: number | null;
-  documents?: DocumentInput[];
-};
+const clientInputSchema = z.object({
+  name: z.string().optional(),
+  phone: z.string(),
+  status: z.nativeEnum(Status).optional(),
+  callResponse: z.nativeEnum(CallResponse).nullable().optional(),
+  notes: z.string().nullable().optional(),
+  course: z.string().nullable().optional(),
+  hostelFee: z.number().nullable().optional(),
+  courseFee: z.number().nullable().optional(),
+  totalFee: z.number().nullable().optional(),
+  courseFeePaid: z.number().nullable().optional(),
+  hostelFeePaid: z.number().nullable().optional(),
+  totalFeePaid: z.number().nullable().optional(),
+  documents: z.array(documentSchema).optional()
+});
 
 export async function GET() {
   const { userId } = await auth();
@@ -53,12 +53,17 @@ export async function POST(req: Request) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
 
-    const body: ClientInput = await req.json();
+    const body = await req.json();
+    const validationResult = clientInputSchema.safeParse(body);
 
-    // Validate required fields
-    if (!body.phone) {
-      return NextResponse.json({ message: "Missing required fields" }, { status: 400 });
+    if (!validationResult.success) {
+      return NextResponse.json(
+        { message: "Invalid input", errors: validationResult.error.format() },
+        { status: 400 }
+      );
     }
+
+    const validatedInput = validationResult.data;
 
         // Check if a client with the same phone already exists
     const existingClient = await prisma.client.findUnique({
@@ -79,29 +84,29 @@ export async function POST(req: Request) {
       return NextResponse.json({ message: "User not found" }, { status: 404 });
     }
 
-    const clientStatus = body.status ?? Status.PROSPECT;
+    const clientStatus = validatedInput.status ?? Status.PROSPECT;
 
     const created = await prisma.client.create({
       data: {
-        name: body.name ?? "N/A",
-        phone: body.phone,
+        name: validatedInput.name ?? "N/A",
+        phone: validatedInput.phone,
         status: clientStatus,
-        callResponse: body.callResponse as any, // optional enum, use as any if not casted properly
-        notes: body.notes ?? null,
-        course: body.course ?? null,
-        hostelFee: body.hostelFee ?? null,
-        courseFee: body.courseFee ?? null,
-        totalFee: body.totalFee ?? null,
-        courseFeePaid: body.courseFeePaid ?? null,
-        hostelFeePaid: body.hostelFeePaid ?? null,
-        totalFeePaid: body.totalFeePaid ?? null,
+        callResponse: validatedInput.callResponse,
+        notes: validatedInput.notes ?? null,
+        course: validatedInput.course ?? null,
+        hostelFee: validatedInput.hostelFee ?? null,
+        courseFee: validatedInput.courseFee ?? null,
+        totalFee: validatedInput.totalFee ?? null,
+        courseFeePaid: validatedInput.courseFeePaid ?? null,
+        hostelFeePaid: validatedInput.hostelFeePaid ?? null,
+        totalFeePaid: validatedInput.totalFeePaid ?? null,
 
         userId: me.id,
         assignedEmployeeId: me.id,
 
-        documents: body.documents && body.documents.length > 0
+        documents: validatedInput.documents && validatedInput.documents.length > 0
           ? {
-              create: body.documents.map(doc => ({
+              create: validatedInput.documents.map((doc: z.infer<typeof documentSchema>) => ({
                 name: doc.name,
                 url: doc.url,
               })),
@@ -136,12 +141,21 @@ export async function DELETE(req: NextRequest) {
   }
 
   try {
-    const body = await req.json();
-    const clientIds: string[] = body.clientIds;
+    const deleteSchema = z.object({
+      clientIds: z.array(z.string()).min(1)
+    });
 
-    if (!Array.isArray(clientIds) || clientIds.length === 0) {
-      return NextResponse.json({ message: "No client IDs provided" }, { status: 400 });
+    const body = await req.json();
+    const validationResult = deleteSchema.safeParse(body);
+
+    if (!validationResult.success) {
+      return NextResponse.json(
+        { message: "Invalid input", errors: validationResult.error.format() },
+        { status: 400 }
+      );
     }
+
+    const { clientIds } = validationResult.data;
 
     const deletableClients = await prisma.client.findMany({
       where: {

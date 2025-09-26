@@ -1,7 +1,8 @@
 import React from "react";
+import { Status } from "@prisma/client";
 
 export interface BulkEditFields {
-  status: string;
+  status: Status;
   courseFee: string;
   courseFeePaid: string;
   hostelFee: string;
@@ -48,11 +49,11 @@ export const BulkEditClientsModal: React.FC<BulkEditClientsModalProps> = ({
               disabled={loading}
             >
               <option value="">-- Select Status --</option>
-              <option value="hot">Hot</option>
-              <option value="prospect">Prospect</option>
-              <option value="followup">Followup</option>
-              <option value="cold">Cold</option>
-              <option value="success">Success</option>
+              <option value="HOT">Hot</option>
+              <option value="PROSPECT">Prospect</option>
+              <option value="FOLLOWUP">Follow Up</option>
+              <option value="COLD">Cold</option>
+              <option value="SUCCESS">Success</option>
             </select>
           </div>
           <div>

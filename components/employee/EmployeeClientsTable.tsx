@@ -7,11 +7,13 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { DeleteDialog } from "../DeleteDialog";
 
+import { Status } from "@prisma/client";
+
 export interface Client {
   id: string;
   name: string | null;
   phone: string | null;
-  status: string | null;
+  status: Status | null;
   courseFee?: number | null;
   courseFeePaid?: number | null;
   hostelFee?: number | null;
@@ -30,7 +32,7 @@ export default function EmployeeClientsTable({ clients: initialClients }: { clie
   // Bulk edit modal state
   const [bulkEditOpen, setBulkEditOpen] = useState(false);
   const [bulkEditFields, setBulkEditFields] = useState<BulkEditFields>({
-    status: "",
+    status: "HOT",
     courseFee: "",
     courseFeePaid: "",
     hostelFee: "",
@@ -58,18 +60,19 @@ export default function EmployeeClientsTable({ clients: initialClients }: { clie
     currentPage * itemsPerPage
   );
 
-  const getStatusColor = (status: string | null | undefined): string => {
-    const safeStatus = status?.toLowerCase() ?? "";
-    switch (safeStatus) {
-      case "hot":
+  const getStatusColor = (status: Status | null | undefined): string => {
+    if (!status) return "bg-gray-100 text-gray-700";
+    
+    switch (status) {
+      case "HOT":
         return "bg-red-100 text-red-700";
-      case "prospect":
+      case "PROSPECT":
         return "bg-yellow-100 text-yellow-700";
-      case "followup":
+      case "FOLLOWUP":
         return "bg-blue-100 text-blue-700";
-      case "cold":
+      case "COLD":
         return "bg-gray-200 text-gray-700";
-      case "success":
+      case "SUCCESS":
         return "bg-green-100 text-green-700";
       default:
         return "bg-gray-100 text-gray-700";
@@ -164,7 +167,7 @@ export default function EmployeeClientsTable({ clients: initialClients }: { clie
 
   const handleBulkEditClose = () => {
     setBulkEditOpen(false);
-    setBulkEditFields({ status: "", courseFee: "", courseFeePaid: "", hostelFee: "", hostelFeePaid: "" });
+    setBulkEditFields({ status: "HOT", courseFee: "", courseFeePaid: "", hostelFee: "", hostelFeePaid: "" });
   };
 
   const getPageNumbers = (): (number | string)[] => {
