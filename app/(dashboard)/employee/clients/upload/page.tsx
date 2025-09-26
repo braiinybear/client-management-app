@@ -34,7 +34,7 @@ export default function BulkUpload() {
 
       const data = await res.json();
       setMessage(data.message || "Upload complete");
-    } catch (_error) {
+    } catch {
       setMessage("Upload failed. Please try again.");
     } finally {
       setIsUploading(false);

@@ -49,7 +49,7 @@ export default function BulkEditClientsModal({
       await onConfirm(fields);
       toast.success(`Successfully updated ${selectedCount} clients`);
       onClose();
-    } catch (error) {
+    } catch {
       toast.error("Failed to update clients");
     } finally {
       setLoading(false);

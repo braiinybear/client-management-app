@@ -12,7 +12,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import Link from "next/link";
 import {
   Edit2,
   Save,
@@ -22,7 +21,6 @@ import {
   User,
   FileText,
   IndianRupee,
-  Info,
   StickyNote, 
 } from "lucide-react";
 import { DeleteDialog } from "../DeleteDialog";
@@ -134,7 +132,7 @@ const router = useRouter();
     if (total !== formData.totalFee) {
       setFormData((prev) => ({ ...prev, totalFee: total }));
     }
-  }, [formData.hostelFee, formData.courseFee]);
+  }, [formData.hostelFee, formData.courseFee, formData.totalFee]);
 
   // Auto-calc totalFeePaid
   useEffect(() => {
@@ -144,7 +142,7 @@ const router = useRouter();
     if (totalPaid !== formData.totalFeePaid) {
       setFormData((prev) => ({ ...prev, totalFeePaid: totalPaid }));
     }
-  }, [formData.courseFeePaid, formData.hostelFeePaid]);
+  }, [formData.courseFeePaid, formData.hostelFeePaid, formData.totalFeePaid]);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
