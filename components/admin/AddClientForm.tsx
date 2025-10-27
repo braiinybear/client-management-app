@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
-// import { CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
@@ -16,16 +15,31 @@ type Props = {
   employeeId: string;
 };
 
+type FormState = {
+  name: string;
+  phone: string;
+  callResponse: CallResponse | "";
+  status: Status;
+  course: string;
+  hostelFee: string;
+  hostelFeePaid: string;
+  courseFee: string;
+  courseFeePaid: string;
+  totalFee: string;
+  totalFeePaid: string;
+  notes: string;
+};
+
 export default function AddClientForm({ employeeId }: Props) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
-  const [form, setForm] = useState({
+  const [form, setForm] = useState<FormState>({
     name: "",
     phone: "",
-    callResponse: "" as CallResponse | "",
-    status: "PROSPECT" as Status,
+    callResponse: "",
+    status: "PROSPECT",
     course: "",
     hostelFee: "",
     hostelFeePaid: "",
@@ -38,13 +52,13 @@ export default function AddClientForm({ employeeId }: Props) {
 
   const [totalRemaining, setTotalRemaining] = useState("0.00");
 
-  // Auto-calc total fee
+  // 🔢 Auto-calc total fee
   useEffect(() => {
     const total = (parseFloat(form.hostelFee) || 0) + (parseFloat(form.courseFee) || 0);
     setForm((p) => ({ ...p, totalFee: total.toFixed(2) }));
   }, [form.hostelFee, form.courseFee]);
 
-  // Auto-calc total paid and remaining
+  // 💰 Auto-calc total paid and remaining
   useEffect(() => {
     const totalPaid = (parseFloat(form.hostelFeePaid) || 0) + (parseFloat(form.courseFeePaid) || 0);
     setForm((p) => ({ ...p, totalFeePaid: totalPaid.toFixed(2) }));
@@ -52,29 +66,31 @@ export default function AddClientForm({ employeeId }: Props) {
     setTotalRemaining(remaining);
   }, [form.hostelFeePaid, form.courseFeePaid, form.totalFee]);
 
+  // ✏️ Generic input change
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setForm((p) => ({ ...p, [name]: value }));
   };
 
+  // 🚀 Submit handler
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
       const payload = {
-        name: form.name,
-        phone: form.phone,
-        callResponse: form.callResponse || null,
+        name: form.name.trim() || undefined,
+        phone: form.phone.trim(),
+        callResponse: form.callResponse || "ONGOING",
         status: form.status,
-        course: form.course || null,
-        hostelFee: form.hostelFee ? parseFloat(form.hostelFee) : null,
-        hostelFeePaid: form.hostelFeePaid ? parseFloat(form.hostelFeePaid) : null,
-        courseFee: form.courseFee ? parseFloat(form.courseFee) : null,
-        courseFeePaid: form.courseFeePaid ? parseFloat(form.courseFeePaid) : null,
-        totalFee: form.totalFee ? parseFloat(form.totalFee) : null,
-        totalFeePaid: form.totalFeePaid ? parseFloat(form.totalFeePaid) : null,
-        notes: form.notes || null,
+        course: form.course.trim() || undefined,
+        hostelFee: form.hostelFee ? parseFloat(form.hostelFee) : undefined,
+        hostelFeePaid: form.hostelFeePaid ? parseFloat(form.hostelFeePaid) : undefined,
+        courseFee: form.courseFee ? parseFloat(form.courseFee) : undefined,
+        courseFeePaid: form.courseFeePaid ? parseFloat(form.courseFeePaid) : undefined,
+        totalFee: form.totalFee ? parseFloat(form.totalFee) : undefined,
+        totalFeePaid: form.totalFeePaid ? parseFloat(form.totalFeePaid) : undefined,
+        notes: form.notes.trim() || undefined,
       };
 
       const res = await fetch(`/api/admin/employees/${employeeId}/clients`, {
@@ -83,17 +99,27 @@ export default function AddClientForm({ employeeId }: Props) {
         body: JSON.stringify(payload),
       });
 
+      const data = await res.json().catch(() => null);
+
       if (!res.ok) {
-        const data = await res.json().catch(() => null);
-        throw new Error(data?.message || "Failed to create client");
+        // 🔎 Handle validation errors from Zod
+        if (data?.errors) {
+          const fieldErrors = Object.entries(data.errors)
+            .map(([field, messages]) => `${field}: ${(messages as string[]).join(", ")}`)
+            .join("\n");
+          toast.error(`Validation Error:\n${fieldErrors}`);
+        } else {
+          toast.error(data?.message || "Failed to create client");
+        }
+        throw new Error(data?.message || "Request failed");
       }
 
-      // Reset form
+      // ✅ Reset form
       setForm({
         name: "",
         phone: "",
-        callResponse: "" as CallResponse | "",
-        status: "PROSPECT" as Status,
+        callResponse: "",
+        status: "PROSPECT",
         course: "",
         hostelFee: "",
         hostelFeePaid: "",
@@ -103,13 +129,12 @@ export default function AddClientForm({ employeeId }: Props) {
         totalFeePaid: "0.00",
         notes: "",
       });
-
       setTotalRemaining("0.00");
       setOpen(false);
       toast.success("Client created successfully!");
       router.refresh();
     } catch (err: any) {
-      toast.error(err?.message || "Failed to create client");
+      console.error(err);
     } finally {
       setLoading(false);
     }
@@ -129,17 +154,29 @@ export default function AddClientForm({ employeeId }: Props) {
       </div>
 
       {open && (
-        <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
+        <form
+          onSubmit={handleSubmit}
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-4"
+        >
+          {/* Name */}
           <div>
             <Label>Client Name</Label>
-            <Input name="name" value={form.name} onChange={handleChange} required />
+            <Input name="name" value={form.name} onChange={handleChange} placeholder="Optional" />
           </div>
 
+          {/* Phone */}
           <div>
-            <Label>Phone</Label>
-            <Input name="phone" value={form.phone} onChange={handleChange} required />
+            <Label>Phone *</Label>
+            <Input
+              name="phone"
+              value={form.phone}
+              onChange={handleChange}
+              required
+              placeholder="Required"
+            />
           </div>
 
+          {/* Call Response */}
           <div>
             <Label>Call Response</Label>
             <Select
@@ -161,6 +198,7 @@ export default function AddClientForm({ employeeId }: Props) {
             </Select>
           </div>
 
+          {/* Status */}
           <div>
             <Label>Status</Label>
             <Select
@@ -180,11 +218,13 @@ export default function AddClientForm({ employeeId }: Props) {
             </Select>
           </div>
 
+          {/* Course */}
           <div>
             <Label>Course</Label>
             <Input name="course" value={form.course} onChange={handleChange} />
           </div>
 
+          {/* Fees */}
           <div>
             <Label>Hostel Fee</Label>
             <Input name="hostelFee" type="number" value={form.hostelFee} onChange={handleChange} />
@@ -192,7 +232,12 @@ export default function AddClientForm({ employeeId }: Props) {
 
           <div>
             <Label>Hostel Fee Paid</Label>
-            <Input name="hostelFeePaid" type="number" value={form.hostelFeePaid} onChange={handleChange} />
+            <Input
+              name="hostelFeePaid"
+              type="number"
+              value={form.hostelFeePaid}
+              onChange={handleChange}
+            />
           </div>
 
           <div>
@@ -202,19 +247,26 @@ export default function AddClientForm({ employeeId }: Props) {
 
           <div>
             <Label>Course Fee Paid</Label>
-            <Input name="courseFeePaid" type="number" value={form.courseFeePaid} onChange={handleChange} />
+            <Input
+              name="courseFeePaid"
+              type="number"
+              value={form.courseFeePaid}
+              onChange={handleChange}
+            />
           </div>
 
+          {/* Totals */}
           <div>
             <Label>Total Fee (auto)</Label>
-            <p className="px-3 py-2 rounded w-full">{form.totalFee}</p>
+            <p className="px-3 py-2 rounded w-full bg-muted">{form.totalFee}</p>
           </div>
 
           <div>
             <Label>Total Remaining Fee (auto)</Label>
-            <p className="px-3 py-2 rounded w-full">{totalRemaining}</p>
+            <p className="px-3 py-2 rounded w-full bg-muted">{totalRemaining}</p>
           </div>
 
+          {/* Notes */}
           <div className="md:col-span-2 lg:col-span-3">
             <Label>Notes</Label>
             <textarea
@@ -223,9 +275,11 @@ export default function AddClientForm({ employeeId }: Props) {
               onChange={handleChange}
               rows={4}
               className="w-full border rounded-md p-2"
+              placeholder="Optional notes"
             />
           </div>
 
+          {/* Submit */}
           <div className="md:col-span-2 lg:col-span-3">
             <Button type="submit" disabled={loading} className="w-full">
               {loading ? "Creating..." : "Create Client"}

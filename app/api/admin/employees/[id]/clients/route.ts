@@ -1,58 +1,87 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { z } from "zod";
-import { auth } from "@clerk/nextjs/server"; // Server-side auth
-import { Status } from "@prisma/client";
+import { auth } from "@clerk/nextjs/server";
+import { Status, CallResponse } from "@prisma/client";
 
-// Zod schema for validation
+/**
+ * ✅ Zod schema
+ * Only `phone` is required; everything else optional.
+ */
 const clientSchema = z.object({
-  name: z.string().min(1, "Client name is required"),
   phone: z.string().min(5, "Phone number is required"),
+  name: z.string().optional(),
   status: z.nativeEnum(Status).optional(),
+  callResponse: z.nativeEnum(CallResponse).optional(),
+  course: z.string().optional(),
+  hostelFee: z.preprocess((val) => val ? parseFloat(val as string) : 0, z.number().nonnegative()).optional(),
+  hostelFeePaid: z.preprocess((val) => val ? parseFloat(val as string) : 0, z.number().nonnegative()).optional(),
+  courseFee: z.preprocess((val) => val ? parseFloat(val as string) : 0, z.number().nonnegative()).optional(),
+  courseFeePaid: z.preprocess((val) => val ? parseFloat(val as string) : 0, z.number().nonnegative()).optional(),
+  totalFee: z.preprocess((val) => val ? parseFloat(val as string) : 0, z.number().nonnegative()).optional(),
+  totalFeePaid: z.preprocess((val) => val ? parseFloat(val as string) : 0, z.number().nonnegative()).optional(),
   notes: z.string().optional(),
 });
 
-interface RouteParams {
-  params: { id: string }; // employee ID
-}
-
-export async function POST(req: Request, { params }: RouteParams) {
+/**
+ * POST /api/admin/employees/[id]/clients
+ * Creates a client for the given employee.
+ */
+export async function POST(
+  req: Request,
+  { params }: { params: { id: string } }
+) {
   try {
-    // 1️⃣ Authenticate admin user
-    const session = await auth(); // async call
-    const clerkId = session.userId;
+    const employeeId = params.id;
+
+    // 1️⃣ Authenticate admin
+    const session = await auth();
+    const clerkId = session?.userId;
 
     if (!clerkId) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
 
-    // 2️⃣ Find admin user in DB
-    const adminUser = await prisma.user.findUnique({ where: { clerkId } });
+    // 2️⃣ Verify admin role
+    const adminUser = await prisma.user.findUnique({
+      where: { clerkId },
+      select: { id: true, role: true },
+    });
+
     if (!adminUser || adminUser.role !== "ADMIN") {
       return NextResponse.json({ message: "Forbidden" }, { status: 403 });
     }
 
     // 3️⃣ Find employee
-    const employeeId = params.id;
-    const employee = await prisma.user.findUnique({ where: { id: employeeId } });
+    const employee = await prisma.user.findUnique({
+      where: { id: employeeId },
+      select: { id: true },
+    });
+
     if (!employee) {
       return NextResponse.json({ message: "Employee not found" }, { status: 404 });
     }
 
-    // 4️⃣ Parse and validate request body
-    const body: unknown = await req.json();
+    // 4️⃣ Validate input
+    const body = await req.json();
     const parsed = clientSchema.safeParse(body);
 
     if (!parsed.success) {
       return NextResponse.json(
-        { message: "Invalid input", errors: parsed.error.format() },
+        {
+          message: "Invalid input",
+          errors: parsed.error.flatten().fieldErrors,
+        },
         { status: 400 }
       );
     }
 
-    // 5️⃣ Check for duplicate phone
+    const data = parsed.data;
+
+    // 5️⃣ Check for duplicates by phone
     const existing = await prisma.client.findUnique({
-      where: { phone: parsed.data.phone },
+      where: { phone: data.phone },
+      select: { id: true },
     });
 
     if (existing) {
@@ -62,19 +91,30 @@ export async function POST(req: Request, { params }: RouteParams) {
       );
     }
 
-    // 6️⃣ Create client assigned to employee
+    // 6️⃣ Auto-calc totalFee if not provided
+    const totalFee = data.totalFee ?? ((data.hostelFee ?? 0) + (data.courseFee ?? 0));
+    const totalFeePaid = data.totalFeePaid ?? ((data.hostelFeePaid ?? 0) + (data.courseFeePaid ?? 0));
+
+    // 7️⃣ Create client
     const created = await prisma.client.create({
       data: {
-        name: parsed.data.name,
-        phone: parsed.data.phone,
-        status: parsed.data.status ?? Status.PROSPECT,
-        notes: parsed.data.notes ?? null,
-        userId: adminUser.id,           // Admin is creator
-        assignedEmployeeId: employee.id, // Employee assignment
+        phone: data.phone,
+        name: data.name ?? "",
+        status: data.status ?? Status.PROSPECT,
+        callResponse: data.callResponse ?? null,
+        course: data.course ?? "",
+        hostelFee: data.hostelFee ?? 0,
+        hostelFeePaid: data.hostelFeePaid ?? 0,
+        courseFee: data.courseFee ?? 0,
+        courseFeePaid: data.courseFeePaid ?? 0,
+        totalFee,
+        totalFeePaid,
+        notes: data.notes ?? "",
+        userId: adminUser.id,
+        assignedEmployeeId: employee.id,
       },
     });
 
-    // 7️⃣ Return the created client
     return NextResponse.json(created, { status: 201 });
   } catch (err) {
     console.error("[ADMIN_EMPLOYEE_CREATE_CLIENT]", err);
