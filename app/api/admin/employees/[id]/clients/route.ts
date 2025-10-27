@@ -29,10 +29,10 @@ const clientSchema = z.object({
  */
 export async function POST(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const employeeId = params.id;
+    const {id : employeeId} = await params;
 
     // 1️⃣ Authenticate admin
     const session = await auth();
