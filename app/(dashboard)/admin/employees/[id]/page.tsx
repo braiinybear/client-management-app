@@ -6,6 +6,7 @@ import { Status } from "@prisma/client";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card } from "@/components/ui/card";
 import UploadClientsComponent from "@/components/UploadClientsComponent";
+import AddClientForm from "@/components/admin/AddClientForm";
 
 type Client = {
   id: string;
@@ -101,16 +102,16 @@ export default async function EmployeePage({ params }: Props) {
         <div className="space-y-3">
           <h2 className="text-xl font-semibold text-gray-400">Basic Information</h2>
           <p>
-            <strong className="text-gray-200">Name:</strong> {employee.name}
+            <strong className="text-gray-400">Name:</strong> {employee.name}
           </p>
           <p>
-            <strong className="text-gray-200">Email:</strong>{" "}
+            <strong className="text-gray-400">Email:</strong>{" "}
             <a href={`mailto:${employee.email}`} className="text-blue-600 hover:underline">
               {employee.email}
             </a>
           </p>
           <p>
-            <strong className="text-gray-200">Role:</strong>{" "}
+            <strong className="text-gray-400">Role:</strong>{" "}
             <span
               className={`inline-block px-2 py-1 text-sm font-medium rounded ${
                 employee.role === "ADMIN"
@@ -125,7 +126,7 @@ export default async function EmployeePage({ params }: Props) {
           </p>
           {employee.clerkId && (
             <p>
-              <strong className="text-gray-200">Clerk ID:</strong> {employee.clerkId}
+              <strong className="text-gray-400">Clerk ID:</strong> {employee.clerkId}
             </p>
           )}
         </div>
@@ -175,7 +176,7 @@ export default async function EmployeePage({ params }: Props) {
       </Card>
 
       <Card className="p-4">
-        
+        <AddClientForm employeeId={employee.id} />
         <UploadClientsComponent employeeId={employee.id}/>
 
       </Card>

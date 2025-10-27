@@ -4,6 +4,7 @@ import { ClerkProvider } from "@clerk/nextjs";
 import { shadesOfPurple } from '@clerk/themes'
 import { ThemeProvider } from "@/components/theme-provider";
 import { Oxanium } from "next/font/google";
+import { Toaster } from "sonner";
 
 
 
@@ -43,6 +44,7 @@ export default function RootLayout({
             disableTransitionOnChange
           >
           {children}
+          <Toaster position="top-right" richColors /> {/* 👈 This is required */}
           </ThemeProvider>
         </body>
       </html>
