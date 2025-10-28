@@ -45,8 +45,8 @@ model Client {
 
   documents          Document[]
 
-  createdAt          DateTime @default(now()) // ✅ Added
-  updatedAt          DateTime @updatedAt      // ✅ Optional but useful
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt    
 }
 
 

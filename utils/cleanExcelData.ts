@@ -142,12 +142,12 @@ export const cleanExcelData = (rows: any[]) => {
       } else {
         errors.push({
           row: index + 2,
-          message: `Invalid call response: "${cleanedRow.callResponse}", defaulted to ONGOING.`,
+          message: `Invalid call response: "${cleanedRow.callResponse}", defaulted to null.`,
         });
-        cleanedRow.callResponse = "ONGOING";
+        cleanedRow.callResponse = null;
       }
     } else {
-      cleanedRow.callResponse = "ONGOING";
+      cleanedRow.callResponse =  null;
     }
 
     // Set nulls for missing optional fields
