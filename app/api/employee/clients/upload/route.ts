@@ -20,7 +20,10 @@ export const POST = async (req: Request) => {
     const formData = await req.formData();
     const file = formData.get("file") as File;
     if (!file) {
-      return NextResponse.json({ message: "File not provided" }, { status: 400 });
+      return NextResponse.json(
+        { message: "File not provided" },
+        { status: 400 }
+      );
     }
 
     const buffer = Buffer.from(await file.arrayBuffer());
@@ -31,16 +34,22 @@ export const POST = async (req: Request) => {
 
     const { cleaned, errors } = cleanExcelData(data);
 
+    // ✅ Convert "PROSPECT" status to null before saving
+    const sanitized = cleaned.map((client) => ({
+      ...client,
+      status: client.status === "PROSPECT" ? null : client.status,
+    }));
+
     // Use concurrency limit to avoid Prisma connection pool timeout
     const limit = pLimit(3);
 
-    const upsertPromises = cleaned.map((client) =>
+    const upsertPromises = sanitized.map((client) =>
       limit(() =>
         prisma.client.upsert({
           where: { phone: client.phone },
           update: {
             ...(client.name && { name: client.name }),
-            status: client.status,
+            status: client.status, // now null if "PROSPECT"
             notes: client.notes,
             course: client.course,
             hostelFee: client.hostelFee,

@@ -45,6 +45,7 @@ export const cleanExcelData = (rows: any[]) => {
     phone: "phone",
     "phone number": "phone",
     phonenumber: "phone",
+    "contact number": "phone",
     number: "phone",
     notes: "notes",
     remark: "notes",
@@ -124,7 +125,12 @@ export const cleanExcelData = (rows: any[]) => {
     }
 
     // Default status if still missing
-    cleanedRow.status = cleanedRow.status ?? "PROSPECT";
+    cleanedRow.status = cleanedRow.status ?? null;
+
+    // ✅ New rule: if status is PROSPECT, set it to null
+    if (cleanedRow.status === "PROSPECT") {
+      cleanedRow.status = null;
+    }
 
     // Handle callResponse mapping
     let rawCallResponse = cleanedRow.callResponse;

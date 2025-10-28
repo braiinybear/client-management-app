@@ -105,68 +105,109 @@
 
 
 
-  const { PrismaClient, Role, Status } = require("@prisma/client");
+//   const { PrismaClient, Role, Status } = require("@prisma/client");
+// const prisma = new PrismaClient();
+
+// async function main() {
+//   console.log("🌱 Seeding database...");
+
+//   // Find employee user by email (replace with your actual email)
+//   const employee = await prisma.user.findUnique({
+//     where: { email: "nikachan162@gmail.com" }, // <-- specify employee email here
+//   });
+
+//   if (!employee) {
+//     throw new Error("❌ Employee with email nikachan162@gmail.com not found.");
+//   }
+
+//   // Now create clients assigned to this employee
+//   const statuses = [
+//     Status.HOT,
+//     Status.PROSPECT,
+//     Status.FOLLOWUP,
+//     Status.COLD,
+//     Status.SUCCESS,
+//   ];
+
+//   for (let i = 1; i <= 30; i++) {
+//     const randomStatus = statuses[Math.floor(Math.random() * statuses.length)];
+
+//     const courseFee = 3000 + Math.floor(Math.random() * 2000);
+//     const hostelFee = 1000 + Math.floor(Math.random() * 2000);
+//     const totalFee = courseFee + hostelFee;
+
+//     const courseFeePaid = Math.floor(Math.random() * courseFee);
+//     const hostelFeePaid = Math.floor(Math.random() * hostelFee);
+//     const totalFeePaid = courseFeePaid + hostelFeePaid;
+
+//     await prisma.client.create({
+//       data: {
+//         name: `Client ${i}`,
+//         email: `client${i}@example.com`,
+//         phone: `555-000-${String(i).padStart(4, "0")}`,
+//         status: randomStatus,
+//         course: `Course ${Math.ceil(Math.random() * 5)}`,
+//         hostelFee,
+//         courseFee,
+//         totalFee,
+//         hostelFeePaid,
+//         courseFeePaid,
+//         totalFeePaid,
+//         userId: employee.id,            // <-- creator is employee
+//         assignedEmployeeId: employee.id, // <-- assigned employee is same employee
+//       },
+//     });
+//   }
+
+//   console.log("✅ Clients assigned to employee seeded successfully!");
+// }
+
+
+// main()
+//   .catch((e) => {
+//     console.error("❌ Seeding error:", e);
+//     process.exit(1);
+//   })
+//   .finally(async () => {
+//     await prisma.$disconnect();
+//   });
+
+
+
+
+//************************************** converting propect to null ****************************************************************//
+
+import { PrismaClient } from "@prisma/client";
+
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log("🌱 Seeding database...");
+  console.log("🔍 Finding all clients with status = 'PROSPECT'...");
 
-  // Find employee user by email (replace with your actual email)
-  const employee = await prisma.user.findUnique({
-    where: { email: "nikachan162@gmail.com" }, // <-- specify employee email here
+  // Count how many will be updated
+  const count = await prisma.client.count({
+    where: { status: "PROSPECT" },
   });
 
-  if (!employee) {
-    throw new Error("❌ Employee with email nikachan162@gmail.com not found.");
+  if (count === 0) {
+    console.log("✅ No clients found with 'PROSPECT' status. Nothing to update.");
+    return;
   }
 
-  // Now create clients assigned to this employee
-  const statuses = [
-    Status.HOT,
-    Status.PROSPECT,
-    Status.FOLLOWUP,
-    Status.COLD,
-    Status.SUCCESS,
-  ];
+  console.log(`📦 Found ${count} clients. Updating their status to null...`);
 
-  for (let i = 1; i <= 30; i++) {
-    const randomStatus = statuses[Math.floor(Math.random() * statuses.length)];
+  // Update all matching records in one go
+  const result = await prisma.client.updateMany({
+    where: { status: "PROSPECT" },
+    data: { status: null },
+  });
 
-    const courseFee = 3000 + Math.floor(Math.random() * 2000);
-    const hostelFee = 1000 + Math.floor(Math.random() * 2000);
-    const totalFee = courseFee + hostelFee;
-
-    const courseFeePaid = Math.floor(Math.random() * courseFee);
-    const hostelFeePaid = Math.floor(Math.random() * hostelFee);
-    const totalFeePaid = courseFeePaid + hostelFeePaid;
-
-    await prisma.client.create({
-      data: {
-        name: `Client ${i}`,
-        email: `client${i}@example.com`,
-        phone: `555-000-${String(i).padStart(4, "0")}`,
-        status: randomStatus,
-        course: `Course ${Math.ceil(Math.random() * 5)}`,
-        hostelFee,
-        courseFee,
-        totalFee,
-        hostelFeePaid,
-        courseFeePaid,
-        totalFeePaid,
-        userId: employee.id,            // <-- creator is employee
-        assignedEmployeeId: employee.id, // <-- assigned employee is same employee
-      },
-    });
-  }
-
-  console.log("✅ Clients assigned to employee seeded successfully!");
+  console.log(`✅ Successfully updated ${result.count} client records.`);
 }
 
-
 main()
-  .catch((e) => {
-    console.error("❌ Seeding error:", e);
-    process.exit(1);
+  .catch((err) => {
+    console.error("❌ Error updating clients:", err);
   })
   .finally(async () => {
     await prisma.$disconnect();

@@ -10,6 +10,7 @@ import { StatCard } from "@/components/admin/StatCard";
 type ClientItem = {
   id: string;
   status: string;
+  callResponse: string;
   feePaid: number;
   totalFee: number;
   createdAt: string;
@@ -25,7 +26,8 @@ type EmployeeRaw = {
 type Props = {
   totalClients: number;
   totalEmployees: number;
-  statusCounts: { status: string; count: number }[];
+  statusCounts: { status: string; count: number; percentage: string }[];
+  callResponseCounts: { callResponse: string; count: number; percentage: string }[];
   employees: EmployeeRaw[];
 };
 
@@ -41,12 +43,13 @@ type EmployeeMetric = {
   followups: number;
 };
 
-const COLORS = ["#8884d8", "#82ca9d", "#ffc658", "#ff7f50", "#a0e7e5"];
+const COLORS = ["#8884d8", "#82ca9d", "#ffc658", "#ff7f50", "#a0e7e5", "#ffb6b9"];
 
 export default function AdminDashboardClient({
   totalClients,
   totalEmployees,
   statusCounts,
+  callResponseCounts,
   employees,
 }: Props) {
   const [search, setSearch] = useState("");
@@ -55,18 +58,11 @@ export default function AdminDashboardClient({
   const [sortBy, setSortBy] = useState<"revenue" | "conversion" | "name">("revenue");
   const [sortDir, setSortDir] = useState<"desc" | "asc">("desc");
 
-  // Memoized date range filter
   const withinRange = useCallback(
     (iso: string) => {
       const d = new Date(iso);
-      if (fromDate) {
-        const f = new Date(`${fromDate}T00:00:00`);
-        if (d < f) return false;
-      }
-      if (toDate) {
-        const t = new Date(`${toDate}T23:59:59`);
-        if (d > t) return false;
-      }
+      if (fromDate && d < new Date(`${fromDate}T00:00:00`)) return false;
+      if (toDate && d > new Date(`${toDate}T23:59:59`)) return false;
       return true;
     },
     [fromDate, toDate]
@@ -81,7 +77,6 @@ export default function AdminDashboardClient({
       const outstanding = filtered.reduce((sum, c) => sum + (c.totalFee - c.feePaid), 0);
       const followups = filtered.filter((c) => c.status === "FOLLOWUP").length;
       const conversionRate = totalClients ? (convertedClients / totalClients) * 100 : 0;
-
       return {
         id: emp.id,
         name: emp.name,
@@ -97,10 +92,10 @@ export default function AdminDashboardClient({
 
     const searched = search
       ? list.filter(
-          (e) =>
-            e.name.toLowerCase().includes(search.toLowerCase()) ||
-            e.email.toLowerCase().includes(search.toLowerCase())
-        )
+        (e) =>
+          e.name.toLowerCase().includes(search.toLowerCase()) ||
+          e.email.toLowerCase().includes(search.toLowerCase())
+      )
       : list;
 
     const sorted = [...searched].sort((a, b) => {
@@ -120,9 +115,7 @@ export default function AdminDashboardClient({
       cell: ({ row }) => (
         <div>
           <div className="font-medium">{row.original.name}</div>
-          <div className="text-xs text-muted-foreground break-words">
-            {row.original.email}
-          </div>
+          <div className="text-xs text-muted-foreground break-words">{row.original.email}</div>
         </div>
       ),
     },
@@ -170,9 +163,7 @@ export default function AdminDashboardClient({
     ]);
 
     const csvContent = [headers, ...rows]
-      .map((row) =>
-        row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(",")
-      )
+      .map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(","))
       .join("\n");
 
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
@@ -190,43 +181,86 @@ export default function AdminDashboardClient({
       <div>
         <h1 className="text-2xl md:text-3xl font-bold">Admin Dashboard Overview</h1>
         <p className="text-sm text-muted-foreground mt-1">
-          Insights into employee performance and client status.
+          Insights into employee performance, client status, and call responses.
         </p>
       </div>
 
-      {/* Stat Cards + Pie Chart */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      {/* Stat Cards + Pie Charts */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Link href="/admin/clients" className="block hover:opacity-90 transition">
           <StatCard title="Total Clients" value={totalClients.toLocaleString()} />
         </Link>
         <Link href="/admin/employees" className="block hover:opacity-90 transition">
           <StatCard title="Total Employees" value={totalEmployees.toLocaleString()} />
         </Link>
-        <div className="border rounded-md p-3  shadow-sm">
-          <div className="flex items-center justify-between mb-2">
-            <div className="text-sm font-medium">Clients by Status</div>
-          </div>
+
+        {/* Clients by Status */}
+        <div className="border rounded-md p-3 shadow-sm">
+          <div className="text-sm font-medium mb-2">Clients by Status</div>
           {statusCounts.length ? (
-            <div className="w-full h-50">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={statusCounts}
-                    dataKey="count"
-                    nameKey="status"
-                    outerRadius={60}
-                    label
-                  >
-                    {statusCounts.map((_, i) => (
-                      <Cell key={`cell-${i}`} fill={COLORS[i % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
+            <>
+              <div className="w-full h-50">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={statusCounts}
+                      dataKey="count"
+                      nameKey="status"
+                      outerRadius={60}
+                      label={({ name, percent }) => `${name} ${((percent ?? 0) * 100).toFixed(0)}%`}
+                    >
+                      {statusCounts.map((_, i) => (
+                        <Cell key={`status-${i}`} fill={COLORS[i % COLORS.length]} />
+                      ))}
+                    </Pie>
+
+                    <Tooltip
+                      formatter={(value, name, props) => [
+                        `${value} (${props.payload.percentage}%)`,
+                        name,
+                      ]}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+            </>
           ) : (
             <div className="text-sm text-muted-foreground">No status data</div>
+          )}
+        </div>
+
+        {/* Clients by Call Response */}
+        <div className="border rounded-md p-3 shadow-sm">
+          <div className="text-sm font-medium mb-2">Clients by Call Response</div>
+          {callResponseCounts.length ? (
+            <>
+              <div className="w-full h-50">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={callResponseCounts}
+                      dataKey="count"
+                      nameKey="callResponse"
+                      outerRadius={60}
+                      label={({ name, percent }) => `${name} ${((percent ?? 0) * 100).toFixed(0)}%`}
+                    >
+                      {callResponseCounts.map((_, i) => (
+                        <Cell key={`call-${i}`} fill={COLORS[i % COLORS.length]} />
+                      ))}
+                    </Pie>
+
+                    <Tooltip
+                      formatter={(value, name, props) => [
+                        `${value} (${props.payload.percentage}%)`,
+                        name,
+                      ]}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+            </>
+          ) : (
+            <div className="text-sm text-muted-foreground">No call response data</div>
           )}
         </div>
       </div>
@@ -265,9 +299,7 @@ export default function AdminDashboardClient({
             <select
               className="input input-bordered"
               value={sortBy}
-              onChange={(e) =>
-                setSortBy(e.target.value as "revenue" | "conversion" | "name")
-              }
+              onChange={(e) => setSortBy(e.target.value as "revenue" | "conversion" | "name")}
             >
               <option value="revenue">Revenue</option>
               <option value="conversion">Conversion %</option>

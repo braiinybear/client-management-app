@@ -54,16 +54,22 @@ export const POST = async (req: Request) => {
 
     const { cleaned, errors } = cleanExcelData(data);
 
+    // ✅ Ensure that any "PROSPECT" status is stored as null before DB upsert
+    const sanitized = cleaned.map((client) => ({
+      ...client,
+      status: client.status === "PROSPECT" ? null : client.status,
+    }));
+
     // Concurrency control
     const limit = pLimit(3);
 
-    const upsertPromises = cleaned.map((client) =>
+    const upsertPromises = sanitized.map((client) =>
       limit(() =>
         prisma.client.upsert({
           where: { phone: client.phone },
           update: {
             ...(client.name && { name: client.name }),
-            status: client.status,
+            status: client.status, // now null if "PROSPECT"
             notes: client.notes,
             course: client.course,
             hostelFee: client.hostelFee,

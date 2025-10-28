@@ -2,25 +2,19 @@ import React from "react";
 import { notFound } from "next/navigation";
 import prisma from "@/lib/prisma";
 import PerformanceChart from "./PerformanceChart";
-import { Status } from "@prisma/client";
+import { Status, CallResponse } from "@prisma/client";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card } from "@/components/ui/card";
 import UploadClientsComponent from "@/components/UploadClientsComponent";
 import AddClientForm from "@/components/admin/AddClientForm";
+import CSVDownloadButton from "@/components/CSVDownloadButton";
 
 type Client = {
   id: string;
   name: string;
-  status: Status;
-};
-
-type Employee = {
-  id: string;
-  name: string;
-  email: string;
-  role: string;
-  clerkId?: string;
-  assignedClients: Client[];
+  status: Status | null;
+  callResponse: CallResponse | null;
+  phone: string | null;
 };
 
 type Props = {
@@ -30,7 +24,7 @@ type Props = {
 export const revalidate = 0;
 
 export default async function EmployeePage({ params }: Props) {
-    const { id } = await params;
+  const { id } = await params;
 
   const employee = await prisma.user.findUnique({
     where: { id },
@@ -41,40 +35,51 @@ export default async function EmployeePage({ params }: Props) {
       role: true,
       clerkId: true,
       assignedClients: {
-        // where:{status:{
-        //   in:["HOT","FOLLOWUP","SUCCESS"]
-        // }},
         select: {
           id: true,
           name: true,
           status: true,
           phone: true,
+          callResponse: true,
         },
-        orderBy: {
-          name: "asc",
-        },
+        orderBy: { name: "asc" },
       },
     },
   });
 
   if (!employee) notFound();
 
-  // Aggregate performance data
-  const statusCounts = employee.assignedClients.reduce<Record<Status, number>>(
+  // Aggregate Status data
+  const statusCounts = employee.assignedClients.reduce<Record<string, number>>(
     (acc, client) => {
-      acc[client.status as Status] = (acc[client.status as Status] || 0) + 1;
+      const key = client.status ?? "UNKNOWN";
+      acc[key] = (acc[key] || 0) + 1;
       return acc;
     },
-    {} as Record<Status, number>
+    {}
   );
 
-  const performanceData = Object.entries(statusCounts).map(
-    ([metricName, value], index) => ({
-      id: `${metricName}-${index}`,
-      metricName,
-      value,
-    })
+  // Aggregate CallResponse data
+  const callResponseCounts = employee.assignedClients.reduce<Record<string, number>>(
+    (acc, client) => {
+      const key = client.callResponse ?? "No Response";
+      acc[key] = (acc[key] || 0) + 1;
+      return acc;
+    },
+    {}
   );
+
+  const performanceData = Object.entries(statusCounts).map(([metricName, value], index) => ({
+    id: `${metricName}-${index}`,
+    metricName,
+    value,
+  }));
+
+  const callResponseData = Object.entries(callResponseCounts).map(([metricName, value], index) => ({
+    id: `${metricName}-${index}`,
+    metricName,
+    value,
+  }));
 
   const getStatusBadge = (status: Status) => {
     switch (status) {
@@ -91,6 +96,23 @@ export default async function EmployeePage({ params }: Props) {
       default:
         return "bg-gray-200 text-gray-300";
     }
+  };
+
+  // ✅ Utility: CSV Export Function
+  const exportToCSV = (data: { metricName: string; value: number }[], filename: string) => {
+    const headers = ["Metric", "Count"];
+    const rows = data.map((d) => [d.metricName, d.value]);
+    const csvContent = [headers, ...rows]
+      .map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(","))
+      .join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${filename}-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   return (
@@ -133,42 +155,52 @@ export default async function EmployeePage({ params }: Props) {
       </Card>
 
       {/* Assigned Clients Table */}
-            <Card className="p-4">
+      <Card className="p-4">
         <h2 className="text-2xl font-semibold text-gray-400 mb-4 text-center">Assigned Clients</h2>
         {employee.assignedClients.length ? (
-          <div className="overflow-x-auto  rounded-lg ">
-          <ScrollArea className="h-[50vh]">
-            <table className="min-w-full text-sm text-left text-gray-300">
-              <thead className="bg-gray-100 text-xs uppercase text-gray-200">
-                <tr>
-                  <th className="px-6 py-3">Client Name</th>
-                  <th className="px-6 py-3">Status</th>
-                  <th className="px-6 py-3">Phone No.</th>
-                </tr>
-              </thead>
-                           <tbody>
-                {employee.assignedClients.map((client) => {
-                  if(["HOT","FOLLOWUP","SUCCESS"].includes(client.status ?? "PROSPECT"))
-                  return (
-                  <tr
-                    key={client.id}
-                    className="border-t hover:bg-gray-50 transition-colors"
-                  >
-                    <td className="px-6 py-4 font-medium text-gray-500">{client.name ?? "N/A"}</td>
-                    <td className="px-6 py-4">
-                      <span
-                        className={`px-2 py-1 text-xs font-medium rounded ${getStatusBadge(client.status as Status)}`}
-                      >
-                        {client.status?.toLowerCase() ?? "N/A"}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 font-medium text-gray-500">{client.phone ?? "N/A"}</td>
+          <div className="overflow-x-auto rounded-lg">
+            <ScrollArea className="h-[50vh]">
+              <table className="min-w-full text-sm text-left text-gray-300">
+                <thead className="bg-gray-100 text-xs uppercase text-gray-200">
+                  <tr>
+                    <th className="px-6 py-3">Client Name</th>
+                    <th className="px-6 py-3">Status</th>
+                    <th className="px-6 py-3">Call Response</th>
+                    <th className="px-6 py-3">Phone No.</th>
                   </tr>
-                )
-                })}
-              </tbody>
-            </table>
-          </ScrollArea>
+                </thead>
+                <tbody>
+                  {employee.assignedClients.map((client) => {
+                    if (["HOT", "FOLLOWUP", "SUCCESS"].includes(client.status ?? ""))
+                      return (
+                        <tr
+                          key={client.id}
+                          className="border-t hover:bg-gray-50 transition-colors"
+                        >
+                          <td className="px-6 py-4 font-medium text-gray-500">
+                            {client.name ?? "N/A"}
+                          </td>
+                          <td className="px-6 py-4">
+                            <span
+                              className={`px-2 py-1 text-xs font-medium rounded ${getStatusBadge(
+                                client.status as Status
+                              )}`}
+                            >
+                              {client.status?.toLowerCase() ?? "N/A"}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 text-gray-500">
+                            {client.callResponse ?? "N/A"}
+                          </td>
+                          <td className="px-6 py-4 font-medium text-gray-500">
+                            {client.phone ?? "N/A"}
+                          </td>
+                        </tr>
+                      );
+                  })}
+                </tbody>
+              </table>
+            </ScrollArea>
           </div>
         ) : (
           <p className="text-gray-400">No clients assigned.</p>
@@ -177,21 +209,46 @@ export default async function EmployeePage({ params }: Props) {
 
       <Card className="p-4">
         <AddClientForm employeeId={employee.id} />
-        <UploadClientsComponent employeeId={employee.id}/>
-
+        <UploadClientsComponent employeeId={employee.id} />
       </Card>
 
-      {/* Performance Chart */}
-      <Card className="shadow-lg">
-        <h2 className="text-2xl text-center font-semibold dark:text-gray-300 text-gray-400 mb-4">Performance Metrics</h2>
-        {performanceData.length ? (
-          <div className=" p-6 rounded-lg ">
-            <PerformanceChart data={performanceData} />
-          </div>
-        ) : (
-          <p className="text-gray-500">No performance data available.</p>
-        )}
-      </Card>
+{/* Status Performance Chart */}
+<Card className="shadow-lg p-6">
+  <div className="flex items-center justify-between mb-4">
+    <h2 className="text-2xl font-semibold dark:text-gray-300 text-gray-400">
+      Performance by Status
+    </h2>
+    <CSVDownloadButton
+      data={performanceData}
+      filename="employee-status-performance"
+      label="Download CSV"
+    />
+  </div>
+  {performanceData.length ? (
+    <PerformanceChart data={performanceData} />
+  ) : (
+    <p className="text-gray-500">No status data available.</p>
+  )}
+</Card>
+
+{/* Call Response Chart */}
+<Card className="shadow-lg p-6">
+  <div className="flex items-center justify-between mb-4">
+    <h2 className="text-2xl font-semibold dark:text-gray-300 text-gray-400">
+      Performance by Call Response
+    </h2>
+    <CSVDownloadButton
+      data={callResponseData}
+      filename="employee-callresponse-performance"
+      label="Download CSV"
+    />
+  </div>
+  {callResponseData.length ? (
+    <PerformanceChart data={callResponseData} />
+  ) : (
+    <p className="text-gray-500">No call response data available.</p>
+  )}
+</Card>
     </div>
   );
 }
