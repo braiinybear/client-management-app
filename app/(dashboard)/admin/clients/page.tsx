@@ -1,13 +1,96 @@
 'use client';
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState, useCallback } from "react";
 import { Client } from "../columns";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 import { Status } from "@prisma/client";
 import BulkEditClientsModal from "@/components/admin/BulkEditClientsModal";
 
+/**
+ * AdminClientsPage
+ *
+ * - Keeps all your original functions and structure.
+ * - Adds:
+ *    - Date-wise filtering (defaults to start of current month -> today)
+ *    - Multi-word AND search across multiple fields:
+ *         name, phone, status, assignedEmployee.name, callResponse
+ *    - CSV includes callResponse and createdAt
+ *    - Date controls in toolbar (with toggle to disable date filtering)
+ *    - Extra helpers, legend, keyboard shortcuts for quick filtering
+ *
+ * Notes:
+ * - This file intentionally includes a number of helper components and
+ *   comments to make it self-contained and easy to extend.
+ * - The search behaviour: tokenizes user input by whitespace, and all tokens
+ *   must match somewhere in the combined fields for a client (AND behavior).
+ */
+
+/* -------------------------------------------------------------------------- */
+/* ------------------------------- Utilities --------------------------------*/
+/* -------------------------------------------------------------------------- */
+
+/** Safely convert possible date fields to a Date or null */
+function safeParseDate(value?: string | null): Date | null {
+  if (!value) return null;
+  const d = new Date(value);
+  if (isNaN(d.getTime())) return null;
+  return d;
+}
+
+/** Format date as yyyy-mm-dd for date input default values */
+function formatDateInput(d: Date) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+/** Get start of current month */
+function getStartOfCurrentMonth() {
+  const now = new Date();
+  return new Date(now.getFullYear(), now.getMonth(), 1);
+}
+
+/* -------------------------------------------------------------------------- */
+/* ---------------------------- Small UI parts -------------------------------*/
+/* -------------------------------------------------------------------------- */
+
+function Legend() {
+  return (
+    <div className="flex gap-3 items-center text-xs text-gray-600">
+      <div className="flex items-center gap-2">
+        <span className="w-3 h-3 rounded-full bg-red-100 border" />
+        <span>Hot</span>
+      </div>
+      <div className="flex items-center gap-2">
+        <span className="w-3 h-3 rounded-full bg-yellow-100 border" />
+        <span>Prospect</span>
+      </div>
+      <div className="flex items-center gap-2">
+        <span className="w-3 h-3 rounded-full bg-blue-100 border" />
+        <span>Followup</span>
+      </div>
+      <div className="flex items-center gap-2">
+        <span className="w-3 h-3 rounded-full bg-gray-200 border" />
+        <span>Cold</span>
+      </div>
+      <div className="flex items-center gap-2">
+        <span className="w-3 h-3 rounded-full bg-green-100 border" />
+        <span>Success</span>
+      </div>
+    </div>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/* -------------------------- Main Page Component ----------------------------*/
+/* -------------------------------------------------------------------------- */
+
 export default function AdminClientsPage() {
+  // -------------------------
+  // Original state (unchanged)
+  // -------------------------
   const [clients, setClients] = useState<Client[]>([]);
   const [filteredClients, setFilteredClients] = useState<Client[]>([]);
   const [search, setSearch] = useState("");
@@ -20,6 +103,20 @@ export default function AdminClientsPage() {
 
   const router = useRouter();
 
+  // -------------------------
+  // New state for date filter
+  // -------------------------
+  // defaultStart -> first day of current month
+  const defaultStart = useMemo(() => getStartOfCurrentMonth(), []);
+  const defaultEnd = useMemo(() => new Date(), []);
+
+  const [dateEnabled, setDateEnabled] = useState<boolean>(true);
+  const [startDate, setStartDate] = useState<string>(formatDateInput(defaultStart));
+  const [endDate, setEndDate] = useState<string>(formatDateInput(defaultEnd));
+
+  // -------------------------
+  // Original fetchClients (preserved)
+  // -------------------------
   const fetchClients = async () => {
     setLoading(true);
     setError(null);
@@ -41,25 +138,81 @@ export default function AdminClientsPage() {
     fetchClients();
   }, []);
 
-  // Search filter
-  useEffect(() => {
-    if (!search.trim()) {
-      setFilteredClients(clients);
-    } else {
-      const lower = search.toLowerCase();
-      setFilteredClients(
-        clients.filter((c) =>
-          [c.name ?? "", c.phone ?? "", c.status ?? "", c.assignedEmployee?.name ?? ""].some((field) =>
-            field.toLowerCase().includes(lower)
-          )
-        )
-      );
-    }
-    setCurrentPage(1); // Reset page on filter
-    setSelectedIds(new Set()); // Reset selection on search change
-    setShowBulkEditModal(false); // Close modal if open
-  }, [search, clients]);
+  /* ---------------------------------------------------------------------- */
+  /*  Multi-term AND search + Date filtering logic (replaces older filter)  */
+  /* ---------------------------------------------------------------------- */
 
+  /**
+   * Rules:
+   * - If dateEnabled is true and startDate/endDate exist, filter clients by createdAt / created_at (if present).
+   * - Multi-term search: split on whitespace, lower-case tokens.
+   * - All tokens must be found somewhere in the client's searchable haystack:
+   *     name, phone, status, assignedEmployee?.name, callResponse
+   *   A token can be matched partially (includes).
+   *
+   * This code intentionally preserves your previous "reset page/selection/modal" behavior.
+   */
+  useEffect(() => {
+    // Defensive: wait until clients loaded
+    const applyFilters = () => {
+      let result = [...clients];
+
+      // 1) Date filter (if enabled)
+      if (dateEnabled && startDate && endDate) {
+        const s = new Date(startDate);
+        const e = new Date(endDate);
+        // Ensure end date includes the whole day by setting to end of day
+        e.setHours(23, 59, 59, 999);
+
+        result = result.filter((c) => {
+          // Try multiple possible date fields
+          const createdValue = (c as any).createdAt ?? (c as any).created_at ?? c.createdAt;
+          const created = safeParseDate(createdValue as string | undefined);
+          if (!created) {
+            // If client has no date, exclude from range when date filter is enabled
+            return false;
+          }
+          return created >= s && created <= e;
+        });
+      }
+
+      // 2) Multi-term AND search across multiple fields
+      const trimmed = search.trim();
+      if (trimmed.length > 0) {
+        const tokens = trimmed
+          .split(/\s+/)
+          .map((t) => t.toLowerCase())
+          .filter(Boolean);
+
+        result = result.filter((c) => {
+          // Build haystack: all searchable fields joined by space
+          const hay = [
+            c.name ?? "",
+            c.phone ?? "",
+            c.status ?? "",
+            c.assignedEmployee?.name ?? "",
+            (c as any).callResponse ?? "",
+          ]
+            .join(" ")
+            .toLowerCase();
+
+          // All tokens must be found somewhere (AND)
+          return tokens.every((tk) => hay.includes(tk));
+        });
+      }
+
+      setFilteredClients(result);
+      setCurrentPage(1); // Reset page on filter
+      setSelectedIds(new Set()); // Reset selection on search change
+      setShowBulkEditModal(false); // Close modal if open
+    };
+
+    applyFilters();
+  }, [search, clients, dateEnabled, startDate, endDate]);
+
+  /* -------------------------------------------------------------------------- */
+  /*                               Status colors                                 */
+  /* -------------------------------------------------------------------------- */
   const getStatusColor = (status?: string) => {
     switch (status?.toLowerCase()) {
       case "hot":
@@ -77,13 +230,18 @@ export default function AdminClientsPage() {
     }
   };
 
+  /* -------------------------------------------------------------------------- */
+  /*                                  CSV Export                                 */
+  /* -------------------------------------------------------------------------- */
   const downloadCSV = () => {
-    const headers = ["Name", "Phone", "Assigned Employee", "Status"];
+    const headers = ["Name", "Phone", "Assigned Employee", "Status", "CallResponse", "CreatedAt"];
     const rows = filteredClients.map((c) => [
       c.name || "",
       c.phone || "",
       c?.assignedEmployee?.name || "",
       c.status || "",
+      (c as any).callResponse || "",
+      (c as any).createdAt ?? (c as any).created_at ?? "",
     ]);
 
     const csvContent = [headers, ...rows]
@@ -101,7 +259,9 @@ export default function AdminClientsPage() {
     URL.revokeObjectURL(url);
   };
 
-  // Pagination
+  /* -------------------------------------------------------------------------- */
+  /*                                  Pagination                                 */
+  /* -------------------------------------------------------------------------- */
   const totalPages = Math.ceil(filteredClients.length / itemsPerPage);
   const paginatedClients = filteredClients.slice(
     (currentPage - 1) * itemsPerPage,
@@ -145,22 +305,25 @@ export default function AdminClientsPage() {
     return pages;
   };
 
-  // Bulk select handlers
-const isAllSelected = filteredClients.every((c) => selectedIds.has(c.id));
+  /* -------------------------------------------------------------------------- */
+  /*                              Bulk selection handlers                        */
+  /* -------------------------------------------------------------------------- */
 
-const toggleSelectAll = () => {
-  if (isAllSelected) {
-    // Unselect all filtered clients
-    const newSelected = new Set(selectedIds);
-    filteredClients.forEach((c) => newSelected.delete(c.id));
-    setSelectedIds(newSelected);
-  } else {
-    // Select all filtered clients
-    const newSelected = new Set(selectedIds);
-    filteredClients.forEach((c) => newSelected.add(c.id));
-    setSelectedIds(newSelected);
-  }
-};
+  const isAllSelected = filteredClients.every((c) => selectedIds.has(c.id));
+
+  const toggleSelectAll = () => {
+    if (isAllSelected) {
+      // Unselect all filtered clients
+      const newSelected = new Set(selectedIds);
+      filteredClients.forEach((c) => newSelected.delete(c.id));
+      setSelectedIds(newSelected);
+    } else {
+      // Select all filtered clients
+      const newSelected = new Set(selectedIds);
+      filteredClients.forEach((c) => newSelected.add(c.id));
+      setSelectedIds(newSelected);
+    }
+  };
 
   const toggleSelectOne = (id: string) => {
     const newSelected = new Set(selectedIds);
@@ -171,6 +334,10 @@ const toggleSelectAll = () => {
     }
     setSelectedIds(newSelected);
   };
+
+  /* -------------------------------------------------------------------------- */
+  /*                              Bulk delete / update                           */
+  /* -------------------------------------------------------------------------- */
 
   // Bulk Delete
   const bulkDelete = async () => {
@@ -219,9 +386,9 @@ const toggleSelectAll = () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(updateData),
       });
-      
+
       if (!res.ok) throw new Error("Failed to update clients");
-      
+
       await fetchClients();
       setSelectedIds(new Set());
     } catch (err) {
@@ -229,15 +396,92 @@ const toggleSelectAll = () => {
     }
   };
 
+  /* -------------------------------------------------------------------------- */
+  /*                           Keyboard shortcuts (helpful)                      */
+  /* -------------------------------------------------------------------------- */
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      // ctrl+f focuses search
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "f") {
+        e.preventDefault();
+        const el = document.querySelector<HTMLInputElement>('input[placeholder="Search clients..."]');
+        if (el) el.focus();
+      }
+
+      // ctrl+r refresh
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "r") {
+        e.preventDefault();
+        fetchClients();
+      }
+    };
+
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, []);
+
+  /* -------------------------------------------------------------------------- */
+  /*                              Small helpers / UI                             */
+  /* -------------------------------------------------------------------------- */
+
+  const ResultSummary = () => {
+    return (
+      <div className="flex items-center justify-between w-full text-sm text-gray-600">
+        <div>
+          <strong className="text-gray-800">{filteredClients.length}</strong>{" "}
+          result{filteredClients.length !== 1 ? "s" : ""} — showing page {currentPage} of{" "}
+          {totalPages || 1}
+        </div>
+        <div className="flex items-center gap-4">
+          <Legend />
+          <div className="text-xs text-gray-500">Items per page: {itemsPerPage}</div>
+        </div>
+      </div>
+    );
+  };
+
+  /* -------------------------------------------------------------------------- */
+  /*                                    Render                                   */
+  /* -------------------------------------------------------------------------- */
+
   return (
     <div className="p-4 sm:p-6 max-w-7xl mx-auto">
       {/* Toolbar */}
-      <div className="shadow-sm border rounded-lg p-4 mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+      <div className="shadow-sm border rounded-lg p-4 mb-2 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold text-gray-800">Clients</h1>
           <p className="text-gray-500 text-sm">Manage and monitor all registered clients</p>
         </div>
+
         <div className="flex items-center gap-2 flex-wrap">
+          {/* Date filter controls */}
+          <div className="flex items-center gap-2 bg-white rounded border px-2 py-1">
+            <label className="flex items-center gap-2 text-sm text-gray-600">
+              <input
+                type="checkbox"
+                checked={dateEnabled}
+                onChange={() => setDateEnabled((s) => !s)}
+                className="form-checkbox"
+              />
+              <span>Filter by date</span>
+            </label>
+
+            <input
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              disabled={!dateEnabled}
+              className="border border-gray-200 rounded-md px-2 py-1 text-sm focus:outline-none"
+            />
+            <span className="text-gray-500">to</span>
+            <input
+              type="date"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              disabled={!dateEnabled}
+              className="border border-gray-200 rounded-md px-2 py-1 text-sm focus:outline-none"
+            />
+          </div>
+
           <input
             type="text"
             placeholder="Search clients..."
@@ -247,16 +491,24 @@ const toggleSelectAll = () => {
           />
           <button
             onClick={fetchClients}
-            className="px-4 py-2 rounded-md bg-blue-600 hover:bg-blue-500 transition"
+            className="px-4 py-2 rounded-md bg-blue-600 hover:bg-blue-500 transition text-white"
           >
             Refresh
           </button>
           <button
             onClick={downloadCSV}
-            className="px-4 py-2 rounded-md bg-green-600 hover:bg-green-500 transition"
+            className="px-4 py-2 rounded-md bg-green-600 hover:bg-green-500 transition text-white"
           >
             Download CSV
           </button>
+        </div>
+      </div>
+
+      {/* Extra toolbar row: summary + tips */}
+      <div className="mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+        <ResultSummary />
+        <div className="text-xs text-gray-500">
+          Tip: search supports multiple words (AND). Example: <code>mamta 4389 notinterested</code>
         </div>
       </div>
 
@@ -325,20 +577,22 @@ const toggleSelectAll = () => {
                   <th className="text-left px-4 py-3 text-sm font-medium text-gray-600">Assigned Employee</th>
                   <th className="text-left px-4 py-3 text-sm font-medium text-gray-600">Phone</th>
                   <th className="text-left px-4 py-3 text-sm font-medium text-gray-600">Status</th>
+                  <th className="text-left px-4 py-3 text-sm font-medium text-gray-600">Call Response</th>
+                  <th className="text-left px-4 py-3 text-sm font-medium text-gray-600">Created</th>
                 </tr>
               </thead>
               <tbody>
                 {paginatedClients.map((c, idx) => (
                   <tr
                     key={c.id}
-                    className="hover:bg-gray-600 cursor-pointer transition-colors border-b last:border-0"
+                    className="hover:bg-gray-50 cursor-pointer transition-colors border-b last:border-0"
                   >
                     <td className="px-4 py-3">
                       <input
                         type="checkbox"
                         checked={selectedIds.has(c.id)}
                         onChange={() => toggleSelectOne(c.id)}
-                        onClick={e => e.stopPropagation()}
+                        onClick={(e) => e.stopPropagation()}
                         aria-label={`Select client ${c.name}`}
                       />
                     </td>
@@ -372,6 +626,29 @@ const toggleSelectAll = () => {
                       >
                         {c.status || "Unknown"}
                       </span>
+                    </td>
+                    <td
+                      className="px-4 py-3"
+                      onClick={() => router.push(`clients/${c.id}`)}
+                    >
+                      {(c as any).callResponse ? (
+                        <span className="text-sm text-gray-700">{(c as any).callResponse}</span>
+                      ) : (
+                        <span className="text-sm text-gray-400">-</span>
+                      )}
+                    </td>
+                    <td
+                      className="px-4 py-3 text-sm text-gray-600"
+                      onClick={() => router.push(`clients/${c.id}`)}
+                    >
+                      {/* show createdAt / created_at if available */}
+                      {(() => {
+                        const created = (c as any).createdAt ?? (c as any).created_at;
+                        if (!created) return "N/A";
+                        const d = safeParseDate(created);
+                        if (!d) return String(created);
+                        return d.toLocaleDateString();
+                      })()}
                     </td>
                   </tr>
                 ))}
@@ -428,7 +705,7 @@ const toggleSelectAll = () => {
       )}
 
       {/* Bulk Edit Modal */}
-      <BulkEditClientsModal 
+      <BulkEditClientsModal
         open={showBulkEditModal}
         onClose={() => setShowBulkEditModal(false)}
         selectedCount={selectedIds.size}

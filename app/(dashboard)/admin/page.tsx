@@ -49,7 +49,7 @@ export default async function AdminDashboardPage() {
   }));
 
   const callResponseCounts = callResponseCountsRaw.map((s) => ({
-    callResponse: s.callResponse ?? "No Answer",
+    callResponse: s.callResponse ?? "UNKNOWN",
     count: s._count._all,
   }));
 
