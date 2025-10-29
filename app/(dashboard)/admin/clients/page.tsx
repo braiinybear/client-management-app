@@ -470,7 +470,7 @@ export default function AdminClientsPage() {
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
               disabled={!dateEnabled}
-              className="border border-gray-200 rounded-md px-2 py-1 text-sm focus:outline-none"
+              className="border text-black border-gray-200 rounded-md px-2 py-1 text-sm focus:outline-none"
             />
             <span className="text-gray-500">to</span>
             <input
@@ -478,7 +478,7 @@ export default function AdminClientsPage() {
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
               disabled={!dateEnabled}
-              className="border border-gray-200 rounded-md px-2 py-1 text-sm focus:outline-none"
+              className="border text-black border-gray-200 rounded-md px-2 py-1 text-sm focus:outline-none"
             />
           </div>
 
