@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useMemo, useState, useCallback } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Client } from "../columns";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
@@ -233,31 +233,72 @@ export default function AdminClientsPage() {
   /* -------------------------------------------------------------------------- */
   /*                                  CSV Export                                 */
   /* -------------------------------------------------------------------------- */
+  // const downloadCSV = () => {
+  //   const headers = ["Name", "Phone", "Assigned Employee", "Status", "CallResponse", "CreatedAt"];
+  //   const rows = filteredClients.map((c) => [
+  //     c.name || "",
+  //     c.phone || "",
+  //     c?.assignedEmployee?.name || "",
+  //     c.status || "",
+  //     (c as any).callResponse || "",
+  //     (c as any).createdAt ?? (c as any).created_at ?? "",
+  //   ]);
+
+  //   const csvContent = [headers, ...rows]
+  //     .map((row) => row.map((field) => `"${String(field).replace(/"/g, '""')}"`).join(","))
+  //     .join("\n");
+
+  //   const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+  //   const url = URL.createObjectURL(blob);
+
+  //   const a = document.createElement("a");
+  //   a.href = url;
+  //   a.download = "clients.csv";
+  //   a.click();
+
+  //   URL.revokeObjectURL(url);
+  // };
+
   const downloadCSV = () => {
-    const headers = ["Name", "Phone", "Assigned Employee", "Status", "CallResponse", "CreatedAt"];
-    const rows = filteredClients.map((c) => [
-      c.name || "",
-      c.phone || "",
-      c?.assignedEmployee?.name || "",
-      c.status || "",
-      (c as any).callResponse || "",
-      (c as any).createdAt ?? (c as any).created_at ?? "",
-    ]);
-
-    const csvContent = [headers, ...rows]
-      .map((row) => row.map((field) => `"${String(field).replace(/"/g, '""')}"`).join(","))
-      .join("\n");
-
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "clients.csv";
-    a.click();
-
-    URL.revokeObjectURL(url);
+  const formatDate = (value: string | Date | undefined | null) => {
+    if (!value) return "";
+    const d = new Date(value);
+    if (isNaN(d.getTime())) return "";
+    return d.toLocaleString("en-IN", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true,
+    });
   };
+
+  const headers = ["Name", "Phone", "Assigned Employee", "Status", "CallResponse", "CreatedAt"];
+  const rows = filteredClients.map((c) => [
+    c.name || "",
+    c.phone || "",
+    c?.assignedEmployee?.name || "",
+    c.status || "",
+    (c as any).callResponse || "",
+    formatDate((c as any).createdAt ?? (c as any).created_at),
+  ]);
+
+  const csvContent = [headers, ...rows]
+    .map((row) => row.map((f) => `"${String(f).replace(/"/g, '""')}"`).join(","))
+    .join("\n");
+
+  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "clients.csv";
+  a.click();
+
+  URL.revokeObjectURL(url);
+};
+
 
   /* -------------------------------------------------------------------------- */
   /*                                  Pagination                                 */
@@ -448,7 +489,7 @@ export default function AdminClientsPage() {
       {/* Toolbar */}
       <div className="shadow-sm border rounded-lg p-4 mb-2 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold text-gray-800">Clients</h1>
+          <h1 className="text-2xl font-semibold text-gray-600">Clients</h1>
           <p className="text-gray-500 text-sm">Manage and monitor all registered clients</p>
         </div>
 
@@ -470,7 +511,7 @@ export default function AdminClientsPage() {
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
               disabled={!dateEnabled}
-              className="border text-black border-gray-200 rounded-md px-2 py-1 text-sm focus:outline-none"
+              className="border bg-[#615f5f] text-white bg-red border-gray-200 rounded-md px-2 py-1 text-sm focus:outline-none"
             />
             <span className="text-gray-500">to</span>
             <input
@@ -478,7 +519,7 @@ export default function AdminClientsPage() {
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
               disabled={!dateEnabled}
-              className="border text-black border-gray-200 rounded-md px-2 py-1 text-sm focus:outline-none"
+              className="border bg-[#615f5f] text-white border-gray-200 rounded-md px-2 py-1 text-sm focus:outline-none"
             />
           </div>
 
@@ -585,7 +626,7 @@ export default function AdminClientsPage() {
                 {paginatedClients.map((c, idx) => (
                   <tr
                     key={c.id}
-                    className="hover:bg-gray-50 cursor-pointer transition-colors border-b last:border-0"
+                    className="hover:bg-gray-50 dark:hover:bg-[#3b3b3b] dark:hover:text-[#dad9d9] cursor-pointer transition-colors border-b last:border-0"
                   >
                     <td className="px-4 py-3">
                       <input

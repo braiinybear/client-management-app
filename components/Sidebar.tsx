@@ -108,7 +108,7 @@ export function Sidebar({ links, title = "Dashboard" }: SidebarProps) {
                   ${
                     isActive(href)
                       ? "bg-indigo-600 "
-                      : "text-gray-700 hover:bg-gray-100"
+                      : "text-gray-400 hover:bg-gray-100"
                   }
                   ${disabled ? "opacity-50 cursor-not-allowed" : ""}
                 `}
